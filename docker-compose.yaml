@@ -1,0 +1,15 @@
+version: '3'
+
+# This docker-compose is for developer convenience, not for running in production.
+
+services:
+
+  # For running the FastAPI server
+  service_wizard2_api:
+    build:
+      context: .
+      args:
+        - VCS_REF=$(git rev-parse HEAD)
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5000"
