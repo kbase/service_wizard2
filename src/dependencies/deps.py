@@ -1,7 +1,9 @@
+import logging
 from typing import Annotated
 
 from cacheout import LRUCache
 from fastapi import Header, HTTPException, Cookie
+
 
 from models.models import UserAuthRoles
 
@@ -17,16 +19,30 @@ def get_catalog_cache():
     return catalog_cache
 
 
-def check_token(token):
-    if token in token_cache:
-        return token_cache.get(token)
-    else:
+def check_or_cache_token(token):
+    """
+    If the token is in the cache, we are good.
+
+    If not, cache it.
+
+    Will either return a UserAuthRoles object or throw an exception because the token is invalid, expired, or the auth
+    service is down or the auth url is incorrect.
+    :param token:
+    :return:
+    """
+    if token not in token_cache:
         token_cache.set(token, validate_token(token))
 
 
-def get_user_info(token):
-    pass
 
+
+def validate_and_get_username_roles(token):
+    """
+    This calls out the auth service to validate the token and get the username and auth roles
+    :param token:
+    :return:
+    """
+    return "test", ["test"]
 
 def validate_token(token):
     """
@@ -36,7 +52,7 @@ def validate_token(token):
     :return:
     """
     #TODO Try catch validate errors, auth service URL is bad, etc
-    username, roles = "boris", ["admin"]
+    username, roles = validate_and_get_username_roles(token)
     return UserAuthRoles(username=username, roles=roles)
 
 
@@ -50,9 +66,9 @@ async def authenticated_user(
     # Check to see if the token is valid and trhow an exception if it isnt, but also throw a different exception if the auth service is down
     try:
         if authorized:
-            validate_token(token=authorized)
+            check_or_cache_token(token=authorized)
         else:
-            validate_token(token=kbase_session_cookie)
+            check_or_cache_token(token=kbase_session_cookie)
     except HTTPException as e:
         if e.status_code == 500:
             raise HTTPException(status_code=400, detail="Auth service is down")

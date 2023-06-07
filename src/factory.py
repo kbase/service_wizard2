@@ -1,8 +1,9 @@
+import logging
 import os
 
 import sentry_sdk
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI,logger
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.routes.authenticated_routes import router as sw2_authenticated_router
@@ -21,10 +22,14 @@ def create_app(token_cache=None, catalog_cache=None):
             http_proxy=os.environ.get('HTTP_PROXY')
         )
     app = FastAPI()
+
+    logging.basicConfig(level=logging.DEBUG)
+    # logger.logger.setLevel(logging.DEBUG)
     app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
     Instrumentator().instrument(app).expose(app)
 
+    logging.info("HI")
 
 
     return app
