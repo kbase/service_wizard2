@@ -3,10 +3,10 @@ from typing import Union
 from fastapi import APIRouter, Request, Depends
 
 from models.models import ServiceLogWebSocket
-from src.dependencies.deps import get_token_header
+from src.dependencies.deps import authenticated_user
 
 router = APIRouter(tags=["items"],
-                   dependencies=[Depends(get_token_header)],
+                   dependencies=[Depends(authenticated_user)],
                    responses={404: {"description": "Not found"}}, )
 
 
@@ -18,6 +18,7 @@ def get_service_log(service: str, instance_id: Union[str | None] = None):
     :param instance_id: id of the specific service instance, e.g "1234"
     :return: a dictionary with a key "instance_id" and a key "logs" which is a list of logs
     """
+
     #TODO Call both and see what they look like
     return {
         "instance_id": instance_id,

@@ -1,13 +1,17 @@
 import os
 
 import sentry_sdk
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
+
 from src.routes.authenticated_routes import router as sw2_authenticated_router
 from src.routes.unauthenticated_routes import router as sw2_unauthenticated_router
 
 
-def create_app():
+def create_app(token_cache=None, catalog_cache=None):
+    load_dotenv()  # Load environment variables from .env file
+
     if os.environ.get('SENTRY_DSN'):
         # Monkeypatch here
         # Will require socks proxy for local development
@@ -20,4 +24,7 @@ def create_app():
     app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
     Instrumentator().instrument(app).expose(app)
+
+
+
     return app

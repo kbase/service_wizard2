@@ -1,7 +1,7 @@
 
 from fastapi import APIRouter, Request, Depends
 
-from src.dependencies.deps import get_token_header
+# from src.dependencies.deps import get_token_header
 
 router = APIRouter(tags=["items"],
     responses={404: {"description": "Not found"}} ,)
