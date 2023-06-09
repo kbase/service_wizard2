@@ -5,7 +5,7 @@ from cacheout import LRUCache
 from fastapi import Header, HTTPException, Cookie
 
 
-from models.models import UserAuthRoles
+from src.models.models import UserAuthRoles
 
 token_cache = LRUCache(maxsize=100, ttl=300)
 catalog_cache = LRUCache(maxsize=100, ttl=300)

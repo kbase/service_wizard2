@@ -2,7 +2,7 @@ from typing import Union
 
 from fastapi import APIRouter, Request, Depends
 
-from models.models import ServiceLogWebSocket
+from src.models.models import ServiceLogWebSocket
 from src.dependencies.deps import authenticated_user
 
 router = APIRouter(tags=["items"],
