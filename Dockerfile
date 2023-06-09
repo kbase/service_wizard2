@@ -8,7 +8,7 @@ RUN pip install --upgrade pip && \
     pip install pipenv
 
 # install deps
-COPY Pipfile* /app
+COPY Pipfile* /app/
 RUN pipenv sync --system
 
 COPY ./ /app
