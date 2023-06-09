@@ -1,4 +1,4 @@
-name: KBase Collections tests
+name: Service Wizard 2 Tests
 
 on:
   pull_request:
@@ -16,7 +16,7 @@ on:
 
 jobs:
 
-  collections_tests:
+  service_wizard2_tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
