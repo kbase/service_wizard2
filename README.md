@@ -32,44 +32,11 @@ You can run the service in pycharm as well, but you will need to set the followi
 script path =`/Users/XXX/.local/share/virtualenvs/service_wizard2-vG0FwGFD/bin/uvicorn`
 parameters = `--reload --port 5002 --host 0.0.0.0 --factory src.factory:create_app `
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# PROTOTYPE - Collections repo
-
-Contains service API and loader code for collections of data that
-
-* users can compare with their data
-* users can subselect
-* users can move subselections into their own narratives
-
-Currently collections only contain KBase staff curated data.
-
 ## Usage
 
 OpenAPI documentation is provided at the `/docs` endpoint of the server (in KBase, this is
-at `<host>/service/collectionsservice/docs`, for example
-[https://ci.kbase.us/services/collectionsservice/docs](https://ci.kbase.us/services/collectionsservice/docs)).
+at `<host>/service/service_wizard2/docs`, for example
+[https://ci.kbase.us/services/service_wizard2/docs](https://ci.kbase.us/services/service_wizard2/docs)).
 
 ### Error codes
 
