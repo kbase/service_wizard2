@@ -1,0 +1,16 @@
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-wizard2
+  labels:
+    app.kubernetes.io/name: service-wizard2
+spec:
+  ports:
+  - port: 5000
+    targetPort: 5000
+  selector:
+    app.kubernetes.io/name: service-wizard2
+status:
+  loadBalancer: {}

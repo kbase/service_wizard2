@@ -11,6 +11,7 @@ from src.routes.unauthenticated_routes import router as sw2_unauthenticated_rout
 
 
 def create_app(token_cache=None, catalog_cache=None):
+    logging.basicConfig(level=logging.DEBUG)
     load_dotenv()  # Load environment variables from .env file
 
     if os.environ.get('SENTRY_DSN'):
@@ -22,14 +23,7 @@ def create_app(token_cache=None, catalog_cache=None):
             http_proxy=os.environ.get('HTTP_PROXY')
         )
     app = FastAPI()
-
-    logging.basicConfig(level=logging.DEBUG)
-    # logger.logger.setLevel(logging.DEBUG)
     app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
     Instrumentator().instrument(app).expose(app)
-
-    logging.info("HI")
-
-
     return app
