@@ -23,7 +23,7 @@ Convenience scripts are provided in the [scripts](scripts) directory to setup th
 In order to connect to a kubernetes cluster, you will need to have a kubeconfig file in your home directory.
 The kubeconfig file is typically located at `~/.kube/config`.
 Read more about kubeconfig files [here](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/).
-Ensure that your context is set to the correct cluster and namespace and matches the environmental variables in the [env](.env) file.
+Ensure that your context is set to the correct cluster and namespace and matches the environmental variables in the [env](test/.env) file.
 
 
 # PYCHARM 

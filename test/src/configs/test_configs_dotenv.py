@@ -26,7 +26,7 @@ from dotenv import load_dotenv
 
 def test_dotenv_settings():
     #TODO FIX THIS TEST
-    load_dotenv("/Users/bsadkhin/modules/kbase/service_wizard2/.env")
+    # load_dotenv("/Users/bsadkhin/modules/kbase/service_wizard2/.env")
     print(os.environ['NAMESPACE'])
     get_settings.cache_clear()
     s = get_settings()

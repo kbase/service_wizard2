@@ -10,7 +10,7 @@ else
 
     # Install dependencies
     pipenv install --dev
-    pipenv requirements > requirements_generated.txt
+#    pipenv requirements > requirements_generated.txt
     pipenv sync
     echo "Installed dependencies."
 fi
