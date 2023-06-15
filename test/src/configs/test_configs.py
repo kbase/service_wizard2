@@ -1,8 +1,9 @@
 import os
 from unittest.mock import patch
+
 import pytest
 
-from src.configs.settings import EnvironmentVariableError, get_settings, Settings
+from src.configs.settings import EnvironmentVariableError, get_settings
 
 
 def test_get_settings_success(setup_env_variables):
