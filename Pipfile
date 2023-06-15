@@ -15,7 +15,6 @@ pydantic = "==1.10.8"
 cacheout = "*"
 jinja-cli = "==1.2.2"
 python-dotenv = "==0.19.1"
-jinja2 = "*"
 
 [dev-packages]
 pytest = "==7.3.1"
