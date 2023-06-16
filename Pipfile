@@ -13,14 +13,13 @@ requests = "==2.31.0"
 prometheus-fastapi-instrumentator =  "==6.0.0"
 pydantic = "==1.10.8"
 cacheout = "*"
+jinja-cli = "==1.2.2"
+python-dotenv = "==0.19.1"
 
 [dev-packages]
 pytest = "==7.3.1"
-#python-dateutil = "==2.8.2"
-#coverage = "==7.2.5"
 pytest-cov = "==4.0.0"
-#ipython = "==8.13.1"
-#pytest-asyncio = "==0.21.0"
+
 
 [requires]
 python_version = "3.11"

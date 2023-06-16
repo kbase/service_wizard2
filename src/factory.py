@@ -10,7 +10,7 @@ from src.routes.authenticated_routes import router as sw2_authenticated_router
 from src.routes.unauthenticated_routes import router as sw2_unauthenticated_router
 
 
-def create_app(token_cache=None, catalog_cache=None):
+def create_app(token_cache=None, catalog_cache=None, openapi_url="openapi.json"):
     logging.basicConfig(level=logging.DEBUG)
     load_dotenv()  # Load environment variables from .env file
 
@@ -22,7 +22,9 @@ def create_app(token_cache=None, catalog_cache=None):
             traces_sample_rate=1.0,
             http_proxy=os.environ.get('HTTP_PROXY')
         )
-    app = FastAPI()
+    #TODO openapi_url="/services/service_wizard2/openapi.json"
+    app = FastAPI(openapi_url=openapi_url)
+
     app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
     Instrumentator().instrument(app).expose(app)
