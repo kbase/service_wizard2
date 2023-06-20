@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request, Depends
 
 # from src.dependencies.deps import get_token_header
 
-router = APIRouter(tags=["items"],
+router = APIRouter(tags=["unauthenticated"],
     responses={404: {"description": "Not found"}} ,)
 
 @router.get("/status")

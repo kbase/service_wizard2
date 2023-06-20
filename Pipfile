@@ -15,10 +15,12 @@ pydantic = "==1.10.8"
 cacheout = "*"
 jinja-cli = "==1.2.2"
 python-dotenv = "==0.19.1"
+httpx = "==0.24.1"
 
 [dev-packages]
 pytest = "==7.3.1"
 pytest-cov = "==4.0.0"
+requests_mock = "==1.9.3"
 
 
 [requires]

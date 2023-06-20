@@ -1,11 +1,11 @@
 from typing import Union
 
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Depends
 
-from src.models.models import ServiceLogWebSocket
 from src.dependencies.deps import authenticated_user
+from src.models.models import ServiceLogWebSocket
 
-router = APIRouter(tags=["items"],
+router = APIRouter(tags=["authenticated", "logs"],
                    dependencies=[Depends(authenticated_user)],
                    responses={404: {"description": "Not found"}}, )
 
@@ -19,7 +19,7 @@ def get_service_log(service: str, instance_id: Union[str | None] = None):
     :return: a dictionary with a key "instance_id" and a key "logs" which is a list of logs
     """
 
-    #TODO Call both and see what they look like
+    # TODO Call both and see what they look like
     return {
         "instance_id": instance_id,
         "logs": [
@@ -27,6 +27,7 @@ def get_service_log(service: str, instance_id: Union[str | None] = None):
             "log2"
         ]
     }
+
 
 @router.get("/get_service_log/{instance_id}/{socket_url}")
 def get_service_log_web_socket(instance_id, socket_url):
@@ -50,9 +51,7 @@ def get_service_log_web_socket(instance_id, socket_url):
     # funcdef get_service_log_web_socket(GetServiceLogParams params) returns (list <ServiceLogWebSocket> sockets) authentication required;
 
 
-@router.get("/hello")
-def hello(r: Request):
-    return "Hello"
+
 
 # @router.get(
 #     "/selections/{selection_id}",
