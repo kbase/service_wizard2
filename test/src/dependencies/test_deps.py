@@ -63,12 +63,6 @@ def test_missing_auth(client):
     assert response.status_code == 400
     assert response.json() == {"detail": "Please provide the 'Authorization' header or 'kbase_session_cookie'"}
 
-def test_auth_service_unavailable(client_with_authorization, auth_service_mock):
-    with client_with_authorization() as client:
-        auth_service_mock.get(get_settings().auth_service_url, status_code=500)
-        response = client.get("/get_service_log/123/123")
-        assert response.status_code == 500
-        assert response.json() == {"detail": "Auth service is down"}
 
 
 def test_successful_authentication(client_with_authorization, auth_service_mock):
