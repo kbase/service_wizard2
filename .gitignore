@@ -1,3 +1,5 @@
+.coverage
 __pycache__
 .idea
 venv
+coverage.xml

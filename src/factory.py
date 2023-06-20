@@ -28,7 +28,7 @@ def create_app(token_cache=LRUCache(maxsize=100, ttl=300), catalog_cache=LRUCach
     app.state.token_cache = token_cache
     app.state.catalog_cache = catalog_cache
 
-    app.include_router(sw2_authenticated_router,)
+    app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
     Instrumentator().instrument(app).expose(app)
 
