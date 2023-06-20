@@ -1,13 +1,9 @@
 {
     "_meta": {
-        "hash": {
-            "sha256": "afe3184961539c26c0bc97fb7126c027ac47749c66230dd39ee568167cbc08c8"
-        },
+        "hash": {"sha256": "afe3184961539c26c0bc97fb7126c027ac47749c66230dd39ee568167cbc08c8"},
         "pipfile-spec": 6,
         "requires": {"python_version": "3.11"},
-        "sources": [
-            {"name": "pypi", "url": "https://pypi.org/simple", "verify_ssl": true}
-        ],
+        "sources": [{"name": "pypi", "url": "https://pypi.org/simple", "verify_ssl": true}],
     },
     "default": {
         "anyio": {

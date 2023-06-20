@@ -41,9 +41,7 @@ def auth_service_mock(auth_url=None, user="testuser", custom_roles=None):
 
     with requests_mock.Mocker() as mocker:
         # Mock the response from the AUTH_SERVICE_URL endpoint
-        mocker.get(
-            auth_url, json={"user": user, "customroles": custom_roles}, status_code=200
-        )
+        mocker.get(auth_url, json={"user": user, "customroles": custom_roles}, status_code=200)
         yield mocker
 
 
@@ -77,9 +75,7 @@ def test_get_service_log(client_with_authorization, auth_service_mock):
 def test_missing_auth(client):
     response = client.get("/get_service_log/123/123")
     assert response.status_code == 400
-    assert response.json() == {
-        "detail": "Please provide the 'Authorization' header or 'kbase_session_cookie'"
-    }
+    assert response.json() == {"detail": "Please provide the 'Authorization' header or 'kbase_session_cookie'"}
 
 
 def test_successful_authentication(client_with_authorization, auth_service_mock):
@@ -93,33 +89,25 @@ def test_token_cache(client_with_authorization, auth_service_mock):
     with client_with_authorization("cachedtoken") as client:
         # Test Token Cache Miss
         response = client.get("/get_service_log/456/456")
-        assert (
-            auth_service_mock.call_count == 1
-        )  # Cache miss, so one call to authentication service
+        assert auth_service_mock.call_count == 1  # Cache miss, so one call to authentication service
         assert response.status_code == 200
         assert response.json() == {"instance_id": "456", "logs": ["log1", "log2"]}
 
         # Test Token Cache Hit
         response = client.get("/get_service_log/123/123")
-        assert (
-            auth_service_mock.call_count == 1
-        )  # Cache hit, so no call to authentication service
+        assert auth_service_mock.call_count == 1  # Cache hit, so no call to authentication service
         assert response.status_code == 200
         assert response.json() == {"instance_id": "123", "logs": ["log1", "log2"]}
 
     with client_with_authorization("cachedtoken2") as client:
         # Test Token Cache Miss
         response = client.get("/get_service_log/456/456")
-        assert (
-            auth_service_mock.call_count == 2
-        )  # Cache miss, so one call to authentication service
+        assert auth_service_mock.call_count == 2  # Cache miss, so one call to authentication service
         assert response.status_code == 200
         assert response.json() == {"instance_id": "456", "logs": ["log1", "log2"]}
 
         # Test Token Cache Hit
         response = client.get("/get_service_log/123/123")
-        assert (
-            auth_service_mock.call_count == 2
-        )  # Cache hit, so no call to authentication service
+        assert auth_service_mock.call_count == 2  # Cache hit, so no call to authentication service
         assert response.status_code == 200
         assert response.json() == {"instance_id": "123", "logs": ["log1", "log2"]}

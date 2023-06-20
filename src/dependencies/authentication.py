@@ -35,18 +35,14 @@ def validate_and_get_username_roles(token):
     try:
         response = requests.get(url=auth_url, headers={"Authorization": token})
     except Exception:
-        raise HTTPException(
-            status_code=500, detail="Auth service is down or bad request"
-        )
+        raise HTTPException(status_code=500, detail="Auth service is down or bad request")
 
     if response.status_code == 200:
         return response.json()["user"], response.json()["customroles"]
     elif response.status_code == 404:
         raise HTTPException(status_code=404, detail="Auth URL not configured correctly")
     else:
-        raise HTTPException(
-            status_code=response.status_code, detail=response.json()["error"]
-        )
+        raise HTTPException(status_code=response.status_code, detail=response.json()["error"])
 
 
 def validate_token(token):

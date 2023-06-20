@@ -1,0 +1,3 @@
+[tool.black]
+line_length = 150
+multi_line_output = 3
