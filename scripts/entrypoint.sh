@@ -5,4 +5,4 @@
 # a process manger as described in the FastAPI docs
 
 
-exec uvicorn --host 0.0.0.0 --port 5001 --factory src.factory:create_app
+exec uvicorn --host 0.0.0.0 --port 5000 --factory src.factory:create_app
