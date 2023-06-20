@@ -5,9 +5,11 @@ from fastapi import APIRouter, Depends
 from src.dependencies.deps import authenticated_user
 from src.models.models import ServiceLogWebSocket
 
-router = APIRouter(tags=["authenticated", "logs"],
-                   dependencies=[Depends(authenticated_user)],
-                   responses={404: {"description": "Not found"}}, )
+router = APIRouter(
+    tags=["authenticated", "logs"],
+    dependencies=[Depends(authenticated_user)],
+    responses={404: {"description": "Not found"}},
+)
 
 
 @router.get("/get_service_log/{service}/{instance_id}")
@@ -20,13 +22,7 @@ def get_service_log(service: str, instance_id: Union[str | None] = None):
     """
 
     # TODO Call both and see what they look like
-    return {
-        "instance_id": instance_id,
-        "logs": [
-            "log1",
-            "log2"
-        ]
-    }
+    return {"instance_id": instance_id, "logs": ["log1", "log2"]}
 
 
 @router.get("/get_service_log/{instance_id}/{socket_url}")
@@ -34,8 +30,8 @@ def get_service_log_web_socket(instance_id, socket_url):
     """
     returns connection info for a websocket connection to get realtime service logs
     :param instance_id:
-    :param socket_url: 
-    :return: 
+    :param socket_url:
+    :return:
     """
     socket1 = ServiceLogWebSocket(instance_id=instance_id, socket_url=socket_url)
     socket2 = ServiceLogWebSocket(instance_id=instance_id, socket_url=socket_url)
@@ -49,8 +45,6 @@ def get_service_log_web_socket(instance_id, socket_url):
     #
     # /* returns connection info for a websocket connection to get realtime service logs */
     # funcdef get_service_log_web_socket(GetServiceLogParams params) returns (list <ServiceLogWebSocket> sockets) authentication required;
-
-
 
 
 # @router.get(

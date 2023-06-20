@@ -57,9 +57,6 @@ def test_get_settings_single_admin_role(setup_env_variables):
     assert settings.admin_roles == ["kbase_admin"]
 
 
-
-
-
 @pytest.fixture(autouse=True)
 def setup_env_variables():
     # Clear the cache for get_settings() to ensure that the environment variables are reloaded

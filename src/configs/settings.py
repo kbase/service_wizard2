@@ -36,15 +36,18 @@ def get_settings() -> Settings:
             raise EnvironmentVariableError(f"{var} is not set in the .env file")
 
     admin_roles = [
-        role for role in [
+        role
+        for role in [
             os.environ.get("KBASE_ADMIN_ROLE"),
             os.environ.get("CATALOG_ADMIN_ROLE"),
-            os.environ.get("SERVICE_WIZARD_ROLE")
-        ] if role
+            os.environ.get("SERVICE_WIZARD_ROLE"),
+        ]
+        if role
     ]
     if len(admin_roles) == 0:
         raise EnvironmentVariableError(
-            "At least one admin role (KBASE_ADMIN_ROLE, CATALOG_ADMIN_ROLE, or SERVICE_WIZARD_ROLE) must be set in the .env file")
+            "At least one admin role (KBASE_ADMIN_ROLE, CATALOG_ADMIN_ROLE, or SERVICE_WIZARD_ROLE) must be set in the .env file"
+        )
 
     return Settings(
         namespace=os.environ.get("NAMESPACE"),
@@ -53,5 +56,5 @@ def get_settings() -> Settings:
         catalog_url=os.environ.get("CATALOG_URL"),
         catalog_admin_token=os.environ.get("CATALOG_ADMIN_TOKEN"),
         kubeconfig=os.environ.get("KUBECONFIG"),
-        admin_roles=admin_roles
+        admin_roles=admin_roles,
     )

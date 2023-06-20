@@ -10,7 +10,6 @@ class ServiceLogWebSocket(BaseModel):
     socket_url: str
 
 
-
 class UserAuthRoles:
     def __init__(self, username: str, roles: list[str]):
         self.username = username

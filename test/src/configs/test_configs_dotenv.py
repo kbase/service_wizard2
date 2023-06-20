@@ -21,8 +21,6 @@ def test_missing_roles_and_clear_settings_cache():
     get_settings()
 
 
-
-
 @pytest.fixture(autouse=True)
 def clear_cache():
     # Clear the cache for get_settings() to ensure that the environment variables are reloaded
