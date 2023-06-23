@@ -2,6 +2,7 @@ from typing import Union
 
 from fastapi import APIRouter, Depends
 
+from src.dependencies import status
 from src.dependencies.deps import authenticated_user
 from src.models.models import ServiceLogWebSocket
 
@@ -10,6 +11,8 @@ router = APIRouter(
     dependencies=[Depends(authenticated_user)],
     responses={404: {"description": "Not found"}},
 )
+
+
 
 
 @router.get("/get_service_log/{service}/{instance_id}")

@@ -1,11 +1,17 @@
 from fastapi import APIRouter, Request, Depends
 
+from src.dependencies import status
+
 # from src.dependencies.deps import get_token_header
 
 router = APIRouter(
     tags=["unauthenticated"],
     responses={404: {"description": "Not found"}},
 )
+
+@router.get("/list_service_status")
+def list_service_status(request: Request):
+    return status.list_service_status(request)
 
 
 @router.get("/status")

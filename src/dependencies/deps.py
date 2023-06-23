@@ -5,8 +5,6 @@ from fastapi import Header, HTTPException, Cookie, Depends, Request
 
 from src.dependencies.authentication import ALPHANUMERIC_PATTERN, check_or_cache_token
 
-catalog_cache = LRUCache(maxsize=100, ttl=300)
-
 
 async def get_token_cache(request: Request) -> LRUCache:
     return request.app.state.token_cache
