@@ -4,6 +4,19 @@ The service wizard manages the lifecycle of "dynamic services" in KBase.
 The previous service wizard talked directly to rancher1, this one talks directly to kubernetes.
 Dynamic services are responsible for providing  data and/or UI components for the KBase UI and Narrative.
 
+# Code Review Request
+* Organization and directory structure of APP
+* Organization and directory structure of TESTS
+* Organization and directory structure of TESTS (unit tests)
+* Organization and directory structure of TESTS (integration tests)
+* Organization and directory structure of FASTAPI (routes)
+* RPC Calls backwards compataiblity design
+* Rolling own incomplete RPC respoonses vs using existing libraries
+* Not Using Classes design
+* Dependency system design (passing around request.app.state)
+* Caching
+
+
 # Local Development
 This repo uses a pipenv to manage dependencies.
 To install pipenv, run `pip install pipenv`

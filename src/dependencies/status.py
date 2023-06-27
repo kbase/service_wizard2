@@ -17,7 +17,18 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
     :param git_commit:The Git commit hash of the module.
     :return:
     """
-    mv = get_get_module_version(request, module_name, git_commit)
+    try:
+        mv = get_get_module_version(request, module_name, git_commit)
+    except Exception as e:
+        print(f"Looking up module_name{module_name} and git_commit{git_commit} failed with error {e}")
+        return CatalogModuleInfo(
+            # TODO GET URL FROM THE SERVICE INSTEAD OF GUESSING IT?
+            url=f"No Valid URL Found",
+            version=git_commit,
+            module_name=module_name,
+            release_tags=[],
+            git_commit_hash=git_commit,
+        )
 
     module_info = CatalogModuleInfo(
         # TODO GET URL FROM THE SERVICE INSTEAD OF GUESSING IT?
@@ -54,7 +65,10 @@ def list_service_status(request: Request) -> List[DynamicServiceStatus]:
 
     dynamic_service_statuses = []
     for pod_status in pod_statuses:
-        module_info = lookup_module_info(module_name=module_hash_lookup(pod_status.hash), git_commit=pod_status.git_commit)
+        print("Lookng up", pod_status)
+        module_info = lookup_module_info(request=request,
+                                         module_name=pod_status.kb_module_name,
+                                         git_commit=pod_status.git_commit)
         dynamic_service_statuses.append(
             DynamicServiceStatus(
                 status=pod_status,

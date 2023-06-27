@@ -13,7 +13,7 @@ def get_k8s_client(request: Request) -> client.CoreV1Api:
 
 def get_pods_in_namespace(
     k8s_client: client.CoreV1Api,
-    field_selector="metadata.name,metadata.git_commit,metadata.kb_module_name,status.phase",
+    field_selector=None,
     label_selector="dynamic-service=true",
 ) -> client.V1PodList:
     """
@@ -23,6 +23,7 @@ def get_pods_in_namespace(
     :param label_selector: label_selector (str, optional): Label selector used to filter pods. Defaults to "dynamic-service=true".
     :return: client.V1PodList: A list of pod objects that match the given selectors.
     """
+    #"metadata.name,metadata.git_commit,metadata.kb_module_name,status.phase"
     pod_list = k8s_client.list_namespaced_pod(get_settings().namespace, field_selector=field_selector, label_selector=label_selector)
     return pod_list
 
@@ -37,12 +38,22 @@ def get_all_pods(request: Request) -> List[PodStatus]:
     pods = get_pods_in_namespace(k8s_client=get_k8s_client(request))
     service_list: List[PodStatus] = []
     for pod in pods.items:
+
+        pod_health = "unknown"
+        for condition in pod.status.conditions:
+            if condition.type == "Ready":
+                pod_health = "healthy" if condition.status == "True" else "unhealthy"
+                break
+
+        git_commit = pod.metadata.annotations.get("git_commit") or ""
+        kb_module_name = pod.metadata.annotations.get("kb_module_name") or ""
+
         pod_status = PodStatus.from_pod(
             pod_name=pod.metadata.name,
             pod_status=pod.status.phase,
-            pod_health=pod.status.health,
-            git_commit=pod.metadata.git_commit,
-            kb_module_name=pod.metadata.kb_module_name,
+            pod_health=pod_health,
+            git_commit=git_commit,
+            kb_module_name=kb_module_name,
         )
         service_list.append(pod_status)
     return service_list

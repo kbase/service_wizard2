@@ -11,6 +11,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from src.configs.settings import get_settings
 from src.routes.authenticated_routes import router as sw2_authenticated_router
 from src.routes.unauthenticated_routes import router as sw2_unauthenticated_router
+from src.routes.rpc import router as sw2_rpc_router
 from src.clients.CatalogClient import Catalog
 
 
@@ -49,7 +50,8 @@ def create_app(
         catalog_client = Catalog(url=settings.catalog_url, token=settings.catalog_admin_token)
 
     if k8s_client is None:
-        config.load_kube_config()
+        logging.info(f"Loading k8s config from {settings.kubeconfig}")
+        config.load_kube_config(config_file=settings.kubeconfig)
         k8s_client = client.CoreV1Api()
 
     if os.environ.get("SENTRY_DSN"):
@@ -69,6 +71,7 @@ def create_app(
 
     app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
+    app.include_router(sw2_rpc_router)
     Instrumentator().instrument(app).expose(app)
 
     return app
