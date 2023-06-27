@@ -10,12 +10,12 @@ router = APIRouter(
 )
 
 @router.get("/list_service_status")
-def list_service_status(request: Request):
+async def list_service_status(request: Request):
     return status.list_service_status(request)
 
 
 @router.get("/status")
-def hello(r: Request):
+async def status(r: Request):
     return "status"
 
 

@@ -2,6 +2,7 @@
 
 if [[ -n $VIRTUAL_ENV ]]; then
     echo "Pipenv shell is  activated and ready for updates"
+    rm Pipfile.lock
     pipenv install --dev
     pipenv sync
     echo "Updated dependencies for: `which python`"
