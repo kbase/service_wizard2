@@ -13,6 +13,7 @@ def load_environment():
 @pytest.fixture(autouse=True)
 def generate_kubeconfig():
     # Generate a kubeconfig file for testing
+    # Overwrite kubeconfig
     os.environ['KUBECONFIG'] = "test_kubeconfig_file"
     kubeconfig_path = os.environ['KUBECONFIG']
 
