@@ -10,7 +10,7 @@ def load_environment():
     load_dotenv()
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 def generate_kubeconfig():
     # Generate a kubeconfig file for testing
     os.environ['KUBECONFIG'] = "test_kubeconfig_file"
