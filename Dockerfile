@@ -15,9 +15,11 @@ RUN pipenv sync --system
 COPY ./src /app/src
 COPY ./scripts /app/scripts
 
-# Write the git commit for the service
-ARG VCS_REF=no_git_commit_passed_to_build
-ENV GIT_COMMIT=$VCS_REF
+ARG VCS_REF
+ARG GIT_COMMIT_HASH
+ENV GIT_COMMIT_HASH=${VCS_REF:-${GIT_COMMIT_HASH:-"NO_GIT_COMMIT_PASSED_IN"}}
+
+
 RUN echo $GIT_COMMIT
 
 

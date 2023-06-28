@@ -9,20 +9,34 @@ Dynamic services are responsible for providing  data and/or UI components for th
 The following environment variables are used to configure the application:
 See [.env](.env) file for example
 
+## Client URLs
 
-- `NAMESPACE`: Specifies the namespace for the application where it operates.
 - `AUTH_SERVICE_URL`: Defines the URL of the authentication service used for user authentication and authorization.
-- `KBASE_ENDPOINT`: Specifies the endpoint URL for the KBase service, which provides various functionalities for the application.
 - `CATALOG_URL`: Sets the URL for the catalog service, which manages and provides access to application catalogs.
+
+## Service Wizard URLs
+
+- `EXTERNAL_SW_URL`: Specifies the URL for the external Service Wizard.
+- `EXTERNAL_DS_URL`: Sets the URL for the external Dynamic Services.
+- `KBASE_ENDPOINT`: Specifies the endpoint URL for the KBase service, which provides various functionalities for the application.
+- `ROOT_PATH`: Specifies the root path for the application.
+
+## SW Admin Stuff
+
+- `KBASE_ADMIN_ROLE`: The role identifier for a KBase administrator within the application.
+- `CATALOG_ADMIN_ROLE`: The role identifier for a Catalog administrator within the application.
+- `SERVICE_WIZARD_ROLE`: The role identifier for a Service Wizard administrator within the application.
 - `CATALOG_ADMIN_TOKEN`: The token required for performing administrative actions in the catalog service.
-- `USE_INCLUSTER_CONFIG`: A boolean flag indicating whether the application should use in-cluster configuration. Set it to "true" to use in-cluster configuration or "false" to use an external configuration file.
+
+## Kubernetes configs
+
 - `KUBECONFIG`: Specifies the path to the kubeconfig file. This environment variable is required when `USE_INCLUSTER_CONFIG` is set to "false", else it will read from the default location.
-Note that setting the `KUBECONFIG` environment variable will have no effect when `USE_INCLUSTER_CONFIG` is set to "true". The application will automatically use the in-cluster configuration provided by the underlying infrastructure. If you want to use an external configuration file, ensure that `USE_INCLUSTER_CONFIG` is set to "false" and provide the path to the configuration file using the `KUBECONFIG` environment variable.
-- The `KBASE_ADMIN_ROLE`, `CATALOG_ADMIN_ROLE`, and `SERVICE_WIZARD_ROLE` environment variables grant administrative rights within the application. Having at least one of these roles is required for performing administrative actions within service_wizard2.
+- `NAMESPACE`: Specifies the namespace for the application where it operates.
+- `USE_INCLUSTER_CONFIG`: A boolean flag indicating whether the application should use in-cluster configuration. Set it to "true" to use in-cluster configuration or "false" to use an external configuration file.
+
+**NOTE THAT** setting the `KUBECONFIG` environment variable will have no effect when `USE_INCLUSTER_CONFIG` is set to "true". The application will automatically use the in-cluster configuration provided by the underlying infrastructure. If you want to use an external configuration file, ensure that `USE_INCLUSTER_CONFIG` is set to "false" and provide the path to the configuration file using the `KUBECONFIG` environment variable.
 
 Ensure that all the required environment variables are properly set before running the application.
-
-
 
 
 
@@ -37,6 +51,7 @@ Ensure that all the required environment variables are properly set before runni
 * Not Using Classes design
 * Dependency system design (passing around request.app.state)
 * Caching
+* Async/await
 
 
 # Local Development

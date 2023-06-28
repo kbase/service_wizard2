@@ -15,34 +15,11 @@ from src.routes.rpc import router as sw2_rpc_router
 from src.clients.CatalogClient import Catalog
 
 
-# def get_k8s_client():
-#     # Set the proxy configuration
-#     configuration = client.Configuration()
-#
-#     # Check if K8s_PROXY environment variable is set
-#     if os.environ.get("K8s_PROXY"):
-#         proxy_url = "http://" + "localhost:1337"
-#         configuration.proxy = proxy_url
-#         configuration.proxy.pool_manager
-#
-#
-#     # Load the Kubernetes configuration from the default location
-#     config.load_kube_config(config_file=os.path.expanduser("~/.kube/config"))
-#
-#     # Set the configuration for the Kubernetes client
-#     client.Configuration.set_default(configuration)
-#
-#     # Create and return the Kubernetes client
-#     k8s_client = client.CoreV1Api()
-#     return k8s_client
-
-
 def create_app(
-    token_cache=LRUCache(maxsize=100, ttl=300),
-    catalog_cache=LRUCache(maxsize=100, ttl=300),
-    catalog_client=None,
-    k8s_client=None,
-    openapi_url="/openapi.json",
+        token_cache=LRUCache(maxsize=100, ttl=300),
+        catalog_cache=LRUCache(maxsize=100, ttl=300),
+        catalog_client=None,
+        k8s_client=None
 ):
     logging.basicConfig(level=logging.DEBUG)
     load_dotenv()  # Load environment variables from .env file
@@ -69,8 +46,8 @@ def create_app(
             traces_sample_rate=1.0,
             http_proxy=os.environ.get("HTTP_PROXY"),
         )
-    # TODO openapi_url="/services/service_wizard2/openapi.json"
-    app = FastAPI(openapi_url=openapi_url)
+
+    app = FastAPI(root_path=settings.root_path)
     app.state.token_cache = token_cache
     app.state.catalog_cache = catalog_cache
     app.state.catalog_client = catalog_client

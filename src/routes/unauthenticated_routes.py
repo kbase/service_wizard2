@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Depends
 
 from src.dependencies import status
+from src.configs.settings import Settings
 
 # from src.dependencies.deps import get_token_header
 
@@ -16,9 +17,15 @@ async def list_service_status(request: Request):
 
 
 @router.get("/status")
-async def status(r: Request):
-    return "status"
+async def status(request: Request):
+    settings = request.app.state.settings # type: Settings
+    return [{'state': "OK", 'message': "What's up, doc?", 'version': settings.version,
+             'git_url': settings.git_url, 'git_commit_hash': settings.git_commit_hash}]
 
+
+@router.get("/version")
+async def version(request: Request):
+    return [request.app.state.settings.version]
 
 # @router.get(
 #     "/selections/{selection_id}",
