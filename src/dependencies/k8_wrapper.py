@@ -12,9 +12,9 @@ def get_k8s_client(request: Request) -> client.CoreV1Api:
 
 
 def get_pods_in_namespace(
-        k8s_client: client.CoreV1Api,
-        field_selector=None,
-        label_selector="dynamic-service=true",
+    k8s_client: client.CoreV1Api,
+    field_selector=None,
+    label_selector="dynamic-service=true",
 ) -> client.V1PodList:
     """
     Retrieve a list of pods in a specific namespace based on the provided field and label selectors.
@@ -24,8 +24,7 @@ def get_pods_in_namespace(
     :return: client.V1PodList: A list of pod objects that match the given selectors.
     """
     # "metadata.name,metadata.git_commit,metadata.kb_module_name,status.phase"
-    pod_list = k8s_client.list_namespaced_pod(get_settings().namespace, field_selector=field_selector,
-                                              label_selector=label_selector)
+    pod_list = k8s_client.list_namespaced_pod(get_settings().namespace, field_selector=field_selector, label_selector=label_selector)
     return pod_list
 
 

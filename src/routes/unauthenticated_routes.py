@@ -32,6 +32,7 @@ async def status(request: Request):
 async def version(request: Request):
     return [request.app.state.settings.version]
 
+
 # @router.get(
 #     "/selections/{selection_id}",
 #     # response_model=models.SelectionVerbose,
