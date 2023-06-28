@@ -11,7 +11,9 @@ RUN pip install --upgrade pip && \
 COPY Pipfile* /app/
 RUN pipenv sync --system
 
-COPY ./ /app
+# Copy the source code without the .env file or testing files
+COPY ./src /app/src
+COPY ./scripts /app/scripts
 
 # Write the git commit for the service
 ARG VCS_REF=no_git_commit_passed_to_build
