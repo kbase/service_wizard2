@@ -14,6 +14,7 @@ class Settings:
     catalog_url: str
     catalog_admin_token: str
     kubeconfig: str
+    kbase_endpoint: str
     admin_roles: list[str]
     use_incluster_config: bool
     external_sw_url: str
@@ -33,6 +34,7 @@ def get_settings() -> Settings:
         "EXTERNAL_SW_URL",
         "EXTERNAL_DS_URL",
         "ROOT_PATH",
+        "KBASE_ENDPOINT"
     ]
 
     # Treat all variables as strings
@@ -64,6 +66,7 @@ def get_settings() -> Settings:
 
     return Settings(
         namespace=os.environ.get("NAMESPACE"),
+        kbase_endpoint=os.environ.get("KBASE_ENDPOINT"),gi
         auth_service_url=os.environ.get("AUTH_SERVICE_URL"),
         catalog_url=os.environ.get("CATALOG_URL"),
         catalog_admin_token=os.environ.get("CATALOG_ADMIN_TOKEN"),
@@ -75,5 +78,6 @@ def get_settings() -> Settings:
         root_path=os.environ.get("ROOT_PATH"),
         vcs_ref=os.environ.get("GIT_COMMIT_HASH"),
         git_url="https://github.com/kbase/service_wizard2"
+
 
     )

@@ -18,14 +18,22 @@ async def list_service_status(request: Request):
 
 @router.get("/status")
 async def status(request: Request):
-    settings = request.app.state.settings # type: Settings
-    return [{'state': "OK", 'message': "What's up, doc?", 'version': settings.version,
-             'git_url': settings.git_url, 'git_commit_hash': settings.git_commit_hash}]
+    settings = request.app.state.settings  # type: Settings
+    return [
+        {
+            "state": "OK",
+            "message": "What's up, doc?",
+            "version": settings.version,
+            "git_url": settings.git_url,
+            "git_commit_hash": settings.git_commit_hash,
+        }
+    ]
 
 
 @router.get("/version")
 async def version(request: Request):
     return [request.app.state.settings.version]
+
 
 # @router.get(
 #     "/selections/{selection_id}",

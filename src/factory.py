@@ -15,12 +15,7 @@ from src.routes.rpc import router as sw2_rpc_router
 from src.clients.CatalogClient import Catalog
 
 
-def create_app(
-        token_cache=LRUCache(maxsize=100, ttl=300),
-        catalog_cache=LRUCache(maxsize=100, ttl=300),
-        catalog_client=None,
-        k8s_client=None
-):
+def create_app(token_cache=LRUCache(maxsize=100, ttl=300), catalog_cache=LRUCache(maxsize=100, ttl=300), catalog_client=None, k8s_client=None):
     logging.basicConfig(level=logging.DEBUG)
     load_dotenv()  # Load environment variables from .env file
     settings = get_settings()
@@ -48,7 +43,7 @@ def create_app(
         )
 
     app = FastAPI(root_path=settings.root_path)
-    
+
     app.state.settings = settings
     app.state.token_cache = token_cache
     app.state.catalog_cache = catalog_cache
