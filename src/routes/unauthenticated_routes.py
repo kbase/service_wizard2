@@ -23,9 +23,8 @@ async def status(request: Request):
         {
             "state": "OK",
             "message": "What's up, doc?",
-            "version": settings.version,
             "git_url": settings.git_url,
-            "git_commit_hash": settings.git_commit_hash,
+            "git_commit_hash": settings.vcs_ref,
         }
     ]
 

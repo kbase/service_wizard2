@@ -24,6 +24,7 @@ class Settings:
     vcs_ref: str
 
 
+
 @lru_cache(maxsize=None)
 def get_settings() -> Settings:
     required_variables = [
