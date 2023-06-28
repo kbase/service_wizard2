@@ -49,9 +49,15 @@ def create_app(
     if catalog_client is None:
         catalog_client = Catalog(url=settings.catalog_url, token=settings.catalog_admin_token)
 
+    # Use a service account token if running in a k8s cluster
     if k8s_client is None:
-        logging.info(f"Loading k8s config from {settings.kubeconfig}")
-        config.load_kube_config(config_file=settings.kubeconfig)
+        if settings.use_incluster_config is True:
+            logging.info("Loading in-cluster k8s config")
+            config.load_incluster_config()
+        else:
+            # Use the kubeconfig file, useful for local development and testing
+            logging.info(f"Loading k8s config from {settings.kubeconfig}")
+            config.load_kube_config(config_file=settings.kubeconfig)
         k8s_client = client.CoreV1Api()
 
     if os.environ.get("SENTRY_DSN"):

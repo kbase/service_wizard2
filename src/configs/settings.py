@@ -1,7 +1,6 @@
 import os
-from functools import lru_cache
-from typing import Any
 from dataclasses import dataclass
+from functools import lru_cache
 
 
 class EnvironmentVariableError(Exception):
@@ -17,6 +16,7 @@ class Settings:
     catalog_admin_token: str
     kubeconfig: str
     admin_roles: list[str]
+    use_incluster_config: bool
 
 
 @lru_cache(maxsize=None)
@@ -28,8 +28,10 @@ def get_settings() -> Settings:
         "CATALOG_URL",
         "CATALOG_ADMIN_TOKEN",
         "KUBECONFIG",
+        "USE_INCLUSTER_CONFIG"
     ]
 
+    #Treat all variables as strings
     for var in required_variables:
         value = os.environ.get(var)
         if not value:
@@ -57,4 +59,5 @@ def get_settings() -> Settings:
         catalog_admin_token=os.environ.get("CATALOG_ADMIN_TOKEN"),
         kubeconfig=os.environ.get("KUBECONFIG"),
         admin_roles=admin_roles,
+        use_incluster_config=os.environ.get("USE_INCLUSTER_CONFIG", "").lower() == "true"
     )

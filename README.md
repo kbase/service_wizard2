@@ -4,6 +4,28 @@ The service wizard manages the lifecycle of "dynamic services" in KBase.
 The previous service wizard talked directly to rancher1, this one talks directly to kubernetes.
 Dynamic services are responsible for providing  data and/or UI components for the KBase UI and Narrative.
 
+# Environment Variables
+
+The following environment variables are used to configure the application:
+See [.env](.env) file for example
+
+
+- `NAMESPACE`: Specifies the namespace for the application where it operates.
+- `AUTH_SERVICE_URL`: Defines the URL of the authentication service used for user authentication and authorization.
+- `KBASE_ENDPOINT`: Specifies the endpoint URL for the KBase service, which provides various functionalities for the application.
+- `CATALOG_URL`: Sets the URL for the catalog service, which manages and provides access to application catalogs.
+- `CATALOG_ADMIN_TOKEN`: The token required for performing administrative actions in the catalog service.
+- `USE_INCLUSTER_CONFIG`: A boolean flag indicating whether the application should use in-cluster configuration. Set it to "true" to use in-cluster configuration or "false" to use an external configuration file.
+- `KUBECONFIG`: Specifies the path to the kubeconfig file. This environment variable is required when `USE_INCLUSTER_CONFIG` is set to "false", else it will read from the default location.
+Note that setting the `KUBECONFIG` environment variable will have no effect when `USE_INCLUSTER_CONFIG` is set to "true". The application will automatically use the in-cluster configuration provided by the underlying infrastructure. If you want to use an external configuration file, ensure that `USE_INCLUSTER_CONFIG` is set to "false" and provide the path to the configuration file using the `KUBECONFIG` environment variable.
+- The `KBASE_ADMIN_ROLE`, `CATALOG_ADMIN_ROLE`, and `SERVICE_WIZARD_ROLE` environment variables grant administrative rights within the application. Having at least one of these roles is required for performing administrative actions within service_wizard2.
+
+Ensure that all the required environment variables are properly set before running the application.
+
+
+
+
+
 # Code Review Request
 * Organization and directory structure of APP
 * Organization and directory structure of TESTS
