@@ -42,7 +42,7 @@ async def json_rpc(request: Request):
         {"error": "'function' object has no attribute 'list_service_status'"}
         """
         if method == "ServiceWizard.list_service_status":
-            return {"result": [status.list_service_status(request)], "id": jrpc_id}
+            return {"result": [status.list_service_status_helper(request)], "id": jrpc_id}
         elif method == "ServiceWizard.status":
             return {"result": {}, "id": jrpc_id}
 

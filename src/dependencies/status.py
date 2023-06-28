@@ -41,7 +41,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
     return module_info
 
 
-def list_service_status(request: Request) -> List[DynamicServiceStatus]:
+def list_service_status_helper(request: Request) -> List[DynamicServiceStatus]:
     """
     Retrieve the list of dynamic service statuses based on the Kubernetes pods and module information.
 
