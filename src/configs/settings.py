@@ -9,18 +9,18 @@ class EnvironmentVariableError(Exception):
 
 @dataclass
 class Settings:
-    namespace: str
-    auth_service_url: str
-    catalog_url: str
-    catalog_admin_token: str
-    kubeconfig: str
-    kbase_endpoint: str
     admin_roles: list[str]
-    use_incluster_config: bool
-    external_sw_url: str
+    auth_service_url: str
+    catalog_admin_token: str
+    catalog_url: str
     external_ds_url: str
-    root_path: str
+    external_sw_url: str
     git_url: str
+    kbase_endpoint: str
+    kubeconfig: str
+    namespace: str
+    root_path: str
+    use_incluster_config: bool
     vcs_ref: str
 
 
@@ -34,7 +34,7 @@ def get_settings() -> Settings:
         "EXTERNAL_SW_URL",
         "EXTERNAL_DS_URL",
         "ROOT_PATH",
-        "KBASE_ENDPOINT"
+        "KBASE_ENDPOINT",
     ]
 
     # Treat all variables as strings
@@ -61,23 +61,20 @@ def get_settings() -> Settings:
 
     # USE_INCLUSTER_CONFIG is a boolean that takes precedence over KUBECONFIG
     if "KUBECONFIG" not in os.environ and "USE_INCLUSTER_CONFIG" not in os.environ:
-        raise EnvironmentVariableError(
-            "At least one of the environment variables 'KUBECONFIG' or 'USE_INCLUSTER_CONFIG' must be set")
+        raise EnvironmentVariableError("At least one of the environment variables 'KUBECONFIG' or 'USE_INCLUSTER_CONFIG' must be set")
 
     return Settings(
-        namespace=os.environ.get("NAMESPACE"),
-        kbase_endpoint=os.environ.get("KBASE_ENDPOINT"),gi
-        auth_service_url=os.environ.get("AUTH_SERVICE_URL"),
-        catalog_url=os.environ.get("CATALOG_URL"),
-        catalog_admin_token=os.environ.get("CATALOG_ADMIN_TOKEN"),
-        kubeconfig=os.environ.get("KUBECONFIG"),
         admin_roles=admin_roles,
-        use_incluster_config=os.environ.get("USE_INCLUSTER_CONFIG", "").lower() == "true",
-        external_sw_url=os.environ.get("EXTERNAL_SW_URL"),
+        auth_service_url=os.environ.get("AUTH_SERVICE_URL"),
+        catalog_admin_token=os.environ.get("CATALOG_ADMIN_TOKEN"),
+        catalog_url=os.environ.get("CATALOG_URL"),
         external_ds_url=os.environ.get("EXTERNAL_DS_URL"),
+        external_sw_url=os.environ.get("EXTERNAL_SW_URL"),
+        git_url="https://github.com/kbase/service_wizard2",
+        kbase_endpoint=os.environ.get("KBASE_ENDPOINT"),
+        kubeconfig=os.environ.get("KUBECONFIG"),
+        namespace=os.environ.get("NAMESPACE"),
         root_path=os.environ.get("ROOT_PATH"),
+        use_incluster_config=os.environ.get("USE_INCLUSTER_CONFIG", "").lower() == "true",
         vcs_ref=os.environ.get("GIT_COMMIT_HASH"),
-        git_url="https://github.com/kbase/service_wizard2"
-
-
     )
