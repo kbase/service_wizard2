@@ -48,6 +48,8 @@ def create_app(
         )
 
     app = FastAPI(root_path=settings.root_path)
+    
+    app.state.settings = settings
     app.state.token_cache = token_cache
     app.state.catalog_cache = catalog_cache
     app.state.catalog_client = catalog_client
