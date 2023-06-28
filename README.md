@@ -147,7 +147,6 @@ pipenv sync --dev  # only the first time or when Pipfile.lock changes
 pipenv shell
 PYTHONPATH=. pytest test
 ```
-
 ## TODO
 
 * Logging ip properly (X-RealIP, X-Forwarded-For)
