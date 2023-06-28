@@ -13,8 +13,6 @@ router = APIRouter(
 )
 
 
-
-
 @router.get("/get_service_log/{service}/{instance_id}")
 def get_service_log(service: str, instance_id: Union[str | None] = None):
     """

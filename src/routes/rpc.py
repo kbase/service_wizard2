@@ -32,7 +32,9 @@ async def json_rpc(request: Request):
         jrpc_id = json_data.get("id")
 
         if not isinstance(method, str) or not isinstance(params, list):
-            raise ValueError(f"Invalid JSON-RPC request format {type(method)} {type(params)}", )
+            raise ValueError(
+                f"Invalid JSON-RPC request format {type(method)} {type(params)}",
+            )
 
         """
         * Could do a lookup table here
@@ -45,7 +47,6 @@ async def json_rpc(request: Request):
             return {"result": {}, "id": jrpc_id}
 
         else:
-
             return JSONResponse(
                 status_code=400,
                 content={"error": "Method not found", "id": jrpc_id},

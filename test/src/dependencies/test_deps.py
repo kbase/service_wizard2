@@ -52,22 +52,19 @@ def test_get_bad_token(client_with_authorization, auth_service_mock):
         response = client.get("/get_service_log/123/123")
         assert response.status_code == 422
         assert (
-                response.json()
-                == {
-                    "detail": [
-                        {
-                            "ctx": {"pattern": "^[a-zA-Z0-9]+$"},
-                            "loc": ["header", "Authorization"],
-                            "msg": 'string does not match regex "^[a-zA-Z0-9]+$"',
-                            "type": "value_error.str.regex",
-                        }
-                    ]
-                }
-                != {"instance_id": "123", "logs": ["log1", "log2"]}
+            response.json()
+            == {
+                "detail": [
+                    {
+                        "ctx": {"pattern": "^[a-zA-Z0-9]+$"},
+                        "loc": ["header", "Authorization"],
+                        "msg": 'string does not match regex "^[a-zA-Z0-9]+$"',
+                        "type": "value_error.str.regex",
+                    }
+                ]
+            }
+            != {"instance_id": "123", "logs": ["log1", "log2"]}
         )
-
-
-
 
 
 def test_get_service_log(client_with_authorization, auth_service_mock):

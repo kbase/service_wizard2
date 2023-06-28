@@ -36,12 +36,13 @@ from src.clients.CatalogClient import Catalog
 #     k8s_client = client.CoreV1Api()
 #     return k8s_client
 
+
 def create_app(
-        token_cache=LRUCache(maxsize=100, ttl=300),
-        catalog_cache=LRUCache(maxsize=100, ttl=300),
-        catalog_client=None,
-        k8s_client=None,
-        openapi_url="/openapi.json",
+    token_cache=LRUCache(maxsize=100, ttl=300),
+    catalog_cache=LRUCache(maxsize=100, ttl=300),
+    catalog_client=None,
+    k8s_client=None,
+    openapi_url="/openapi.json",
 ):
     logging.basicConfig(level=logging.DEBUG)
     load_dotenv()  # Load environment variables from .env file

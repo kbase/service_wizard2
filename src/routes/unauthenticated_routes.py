@@ -9,6 +9,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+
 @router.get("/list_service_status")
 async def list_service_status(request: Request):
     return status.list_service_status(request)

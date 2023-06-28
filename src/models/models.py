@@ -43,7 +43,7 @@ class ServiceStatus(Enum):
 
 class PodStatus(BaseModel):
     git_commit: str
-   # health: ServiceHealth
+    # health: ServiceHealth
     hash: str
     kb_module_name: str
     name: str
@@ -51,11 +51,10 @@ class PodStatus(BaseModel):
     up: int
 
     @classmethod
-    def from_pod(cls, pod_name: str, pod_status: str, pod_health: str, git_commit: str,
-                 kb_module_name: str) -> "PodStatus":
+    def from_pod(cls, pod_name: str, pod_status: str, pod_health: str, git_commit: str, kb_module_name: str) -> "PodStatus":
         return cls(
             git_commit=git_commit,
-           # health=ServiceHealth(pod_health.lower()),
+            # health=ServiceHealth(pod_health.lower()),
             hash=git_commit,
             kb_module_name=kb_module_name,
             name=pod_name,
@@ -65,7 +64,7 @@ class PodStatus(BaseModel):
 
 
 class DynamicServiceStatus(BaseModel):
-    #status: PodStatus
+    # status: PodStatus
     url: str
     version: str
     module_name: str

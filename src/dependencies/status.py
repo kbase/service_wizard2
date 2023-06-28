@@ -66,9 +66,7 @@ def list_service_status(request: Request) -> List[DynamicServiceStatus]:
     dynamic_service_statuses = []
     for pod_status in pod_statuses:
         print("Lookng up", pod_status)
-        module_info = lookup_module_info(request=request,
-                                         module_name=pod_status.kb_module_name,
-                                         git_commit=pod_status.git_commit)
+        module_info = lookup_module_info(request=request, module_name=pod_status.kb_module_name, git_commit=pod_status.git_commit)
         dynamic_service_statuses.append(
             DynamicServiceStatus(
                 status=pod_status,

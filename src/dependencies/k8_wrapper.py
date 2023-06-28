@@ -23,7 +23,7 @@ def get_pods_in_namespace(
     :param label_selector: label_selector (str, optional): Label selector used to filter pods. Defaults to "dynamic-service=true".
     :return: client.V1PodList: A list of pod objects that match the given selectors.
     """
-    #"metadata.name,metadata.git_commit,metadata.kb_module_name,status.phase"
+    # "metadata.name,metadata.git_commit,metadata.kb_module_name,status.phase"
     pod_list = k8s_client.list_namespaced_pod(get_settings().namespace, field_selector=field_selector, label_selector=label_selector)
     return pod_list
 
@@ -38,7 +38,6 @@ def get_all_pods(request: Request) -> List[PodStatus]:
     pods = get_pods_in_namespace(k8s_client=get_k8s_client(request))
     service_list: List[PodStatus] = []
     for pod in pods.items:
-
         pod_health = "unknown"
         for condition in pod.status.conditions:
             if condition.type == "Ready":

@@ -1,4 +1,4 @@
-#TODO: Implement tests for k8_wrapper.py
+# TODO: Implement tests for k8_wrapper.py
 # Start up kind cluster
 # Create namespace from env file
 # Create a kubeconfig file for this
@@ -8,4 +8,3 @@
 # Deploy a pod with no annotations/labels
 # TODO deploy services/urls and test those
 pass
-

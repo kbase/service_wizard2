@@ -14,8 +14,8 @@ def load_environment():
 def generate_kubeconfig():
     # Generate a kubeconfig file for testing
     # Overwrite kubeconfig
-    os.environ['KUBECONFIG'] = "test_kubeconfig_file"
-    kubeconfig_path = os.environ['KUBECONFIG']
+    os.environ["KUBECONFIG"] = "test_kubeconfig_file"
+    kubeconfig_path = os.environ["KUBECONFIG"]
 
     kubeconfig_content = """\
 apiVersion: v1
