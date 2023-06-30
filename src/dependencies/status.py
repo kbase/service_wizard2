@@ -1,3 +1,4 @@
+
 from typing import List
 
 from fastapi import Request, HTTPException
@@ -6,7 +7,7 @@ from src.configs.settings import get_settings
 from src.models.models import DynamicServiceStatus, CatalogModuleInfo
 from src.dependencies.catalog_wrapper import get_hash_to_name_mapping, get_get_module_version
 from src.dependencies.k8_wrapper import get_all_pods
-
+import logging
 
 def lookup_module_info(request: Request, module_name: str, git_commit: str) -> CatalogModuleInfo:
     """
@@ -18,6 +19,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
     :return:
     """
     try:
+        logging.info(f"Looking up module_name{module_name} and git_commit{git_commit}")
         mv = get_get_module_version(request, module_name, git_commit)
     except Exception as e:
         print(f"Looking up module_name{module_name} and git_commit{git_commit} failed with error {e}")
@@ -61,7 +63,7 @@ def list_service_status_helper(request: Request) -> List[DynamicServiceStatus]:
 
     pod_statuses = get_all_pods(request)
     if len(pod_statuses) == 0:
-        raise HTTPException(status_code=404, detail="No pods found in kubernetes cluster!")
+        raise HTTPException(status_code=404, detail="No pods found in kubernetes cluster with label dynamic-service=true!")
 
     dynamic_service_statuses = []
     for pod_status in pod_statuses:
