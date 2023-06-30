@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from cacheout import LRUCache
 from fastapi.testclient import TestClient
@@ -111,3 +113,16 @@ def test_token_cache(client_with_authorization, auth_service_mock):
         assert auth_service_mock.call_count == 2  # Cache hit, so no call to authentication service
         assert response.status_code == 200
         assert response.json() == {"instance_id": "123", "logs": ["log1", "log2"]}
+
+
+# def test_list_service_status_rpc(client_with_authorization, auth_service_mock):
+#     #TODO Mock out kubernetes
+#     with client_with_authorization() as client:
+#         headers = {"Content-Type": "application/json"}  # Set the content type to JSON
+#         payload = {
+#             "method": "ServiceWizard.list_service_status",
+#             "id": 22,
+#             "params": [{"module": "onerepotest"}]
+#         }
+#         response = client.post("/rpc/", data=json.dumps(payload), headers=headers)
+#         print(response.json())

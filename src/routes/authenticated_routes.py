@@ -2,6 +2,7 @@ from typing import Union
 
 from fastapi import APIRouter, Depends
 
+from src.dependencies import status
 from src.dependencies.deps import authenticated_user
 from src.models.models import ServiceLogWebSocket
 

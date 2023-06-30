@@ -4,6 +4,56 @@ The service wizard manages the lifecycle of "dynamic services" in KBase.
 The previous service wizard talked directly to rancher1, this one talks directly to kubernetes.
 Dynamic services are responsible for providing  data and/or UI components for the KBase UI and Narrative.
 
+# Environment Variables
+
+The following environment variables are used to configure the application:
+See [.env](.env) file for example
+
+## Client URLs
+
+- `AUTH_SERVICE_URL`: Defines the URL of the authentication service used for user authentication and authorization.
+- `CATALOG_URL`: Sets the URL for the catalog service, which manages and provides access to application catalogs.
+
+## Service Wizard URLs
+
+- `EXTERNAL_SW_URL`: Specifies the URL for the external Service Wizard.
+- `EXTERNAL_DS_URL`: Sets the URL for the external Dynamic Services.
+- `KBASE_ENDPOINT`: Specifies the endpoint URL for the KBase service, which provides various functionalities for the application.
+- `ROOT_PATH`: Specifies the root path for the application.
+
+## SW Admin Stuff
+
+- `KBASE_ADMIN_ROLE`: The role identifier for a KBase administrator within the application.
+- `CATALOG_ADMIN_ROLE`: The role identifier for a Catalog administrator within the application.
+- `SERVICE_WIZARD_ROLE`: The role identifier for a Service Wizard administrator within the application.
+- `CATALOG_ADMIN_TOKEN`: The token required for performing administrative actions in the catalog service.
+
+## Kubernetes configs
+
+- `KUBECONFIG`: Specifies the path to the kubeconfig file. This environment variable is required when `USE_INCLUSTER_CONFIG` is set to "false", else it will read from the default location.
+- `NAMESPACE`: Specifies the namespace for the application where it operates.
+- `USE_INCLUSTER_CONFIG`: A boolean flag indicating whether the application should use in-cluster configuration. Set it to "true" to use in-cluster configuration or "false" to use an external configuration file.
+
+**NOTE THAT** setting the `KUBECONFIG` environment variable will have no effect when `USE_INCLUSTER_CONFIG` is set to "true". The application will automatically use the in-cluster configuration provided by the underlying infrastructure. If you want to use an external configuration file, ensure that `USE_INCLUSTER_CONFIG` is set to "false" and provide the path to the configuration file using the `KUBECONFIG` environment variable.
+
+Ensure that all the required environment variables are properly set before running the application.
+
+
+
+# Code Review Request
+* Organization and directory structure of APP
+* Organization and directory structure of TESTS
+* Organization and directory structure of TESTS (unit tests)
+* Organization and directory structure of TESTS (integration tests)
+* Organization and directory structure of FASTAPI (routes)
+* RPC Calls backwards compataiblity design
+* Rolling own incomplete RPC respoonses vs using existing libraries
+* Not Using Classes design
+* Dependency system design (passing around request.app.state)
+* Caching
+* Async/await
+
+
 # Local Development
 This repo uses a pipenv to manage dependencies.
 To install pipenv, run `pip install pipenv`

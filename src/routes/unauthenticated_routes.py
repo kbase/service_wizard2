@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request
 
-# from src.dependencies.deps import get_token_header
+from src.configs.settings import Settings
+from src.dependencies.status import list_service_status_helper
 
 router = APIRouter(
     tags=["unauthenticated"],
@@ -8,9 +9,28 @@ router = APIRouter(
 )
 
 
+@router.get("/list_service_status")
+def list_service_status(request: Request):
+    return list_service_status_helper(request)
+
+
+@router.get("/")
 @router.get("/status")
-def hello(r: Request):
-    return "status"
+async def status(request: Request):
+    settings = request.app.state.settings  # type: Settings
+    return [
+        {
+            "state": "OK",
+            "message": "What's up, doc?",
+            "git_url": settings.git_url,
+            "git_commit_hash": settings.vcs_ref,
+        }
+    ]
+
+
+@router.get("/version")
+async def version(request: Request):
+    return [request.app.state.settings.version]
 
 
 # @router.get(
