@@ -4,6 +4,56 @@ The service wizard manages the lifecycle of "dynamic services" in KBase.
 The previous service wizard talked directly to rancher1, this one talks directly to kubernetes.
 Dynamic services are responsible for providing  data and/or UI components for the KBase UI and Narrative.
 
+# Environment Variables
+
+The following environment variables are used to configure the application:
+See [.env](.env) file for example
+
+## Client URLs
+
+- `AUTH_SERVICE_URL`: Defines the URL of the authentication service used for user authentication and authorization.
+- `CATALOG_URL`: Sets the URL for the catalog service, which manages and provides access to application catalogs.
+
+## Service Wizard URLs
+
+- `EXTERNAL_SW_URL`: Specifies the URL for the external Service Wizard.
+- `EXTERNAL_DS_URL`: Sets the URL for the external Dynamic Services.
+- `KBASE_ENDPOINT`: Specifies the endpoint URL for the KBase service, which provides various functionalities for the application.
+- `ROOT_PATH`: Specifies the root path for the application.
+
+## SW Admin Stuff
+
+- `KBASE_ADMIN_ROLE`: The role identifier for a KBase administrator within the application.
+- `CATALOG_ADMIN_ROLE`: The role identifier for a Catalog administrator within the application.
+- `SERVICE_WIZARD_ROLE`: The role identifier for a Service Wizard administrator within the application.
+- `CATALOG_ADMIN_TOKEN`: The token required for performing administrative actions in the catalog service.
+
+## Kubernetes configs
+
+- `KUBECONFIG`: Specifies the path to the kubeconfig file. This environment variable is required when `USE_INCLUSTER_CONFIG` is set to "false", else it will read from the default location.
+- `NAMESPACE`: Specifies the namespace for the application where it operates.
+- `USE_INCLUSTER_CONFIG`: A boolean flag indicating whether the application should use in-cluster configuration. Set it to "true" to use in-cluster configuration or "false" to use an external configuration file.
+
+**NOTE THAT** setting the `KUBECONFIG` environment variable will have no effect when `USE_INCLUSTER_CONFIG` is set to "true". The application will automatically use the in-cluster configuration provided by the underlying infrastructure. If you want to use an external configuration file, ensure that `USE_INCLUSTER_CONFIG` is set to "false" and provide the path to the configuration file using the `KUBECONFIG` environment variable.
+
+Ensure that all the required environment variables are properly set before running the application.
+
+
+
+# Code Review Request
+* Organization and directory structure of APP
+* Organization and directory structure of TESTS
+* Organization and directory structure of TESTS (unit tests)
+* Organization and directory structure of TESTS (integration tests)
+* Organization and directory structure of FASTAPI (routes)
+* RPC Calls backwards compataiblity design
+* Rolling own incomplete RPC respoonses vs using existing libraries
+* Not Using Classes design
+* Dependency system design (passing around request.app.state)
+* Caching
+* Async/await
+
+
 # Local Development
 This repo uses a pipenv to manage dependencies.
 To install pipenv, run `pip install pipenv`
@@ -23,7 +73,7 @@ Convenience scripts are provided in the [scripts](scripts) directory to setup th
 In order to connect to a kubernetes cluster, you will need to have a kubeconfig file in your home directory.
 The kubeconfig file is typically located at `~/.kube/config`.
 Read more about kubeconfig files [here](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/).
-Ensure that your context is set to the correct cluster and namespace and matches the environmental variables in the [env](.env) file.
+Ensure that your context is set to the correct cluster and namespace and matches the environmental variables in the [env](test/.env) file.
 
 
 # PYCHARM 
@@ -32,44 +82,11 @@ You can run the service in pycharm as well, but you will need to set the followi
 script path =`/Users/XXX/.local/share/virtualenvs/service_wizard2-vG0FwGFD/bin/uvicorn`
 parameters = `--reload --port 5002 --host 0.0.0.0 --factory src.factory:create_app `
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# PROTOTYPE - Collections repo
-
-Contains service API and loader code for collections of data that
-
-* users can compare with their data
-* users can subselect
-* users can move subselections into their own narratives
-
-Currently collections only contain KBase staff curated data.
-
 ## Usage
 
 OpenAPI documentation is provided at the `/docs` endpoint of the server (in KBase, this is
-at `<host>/service/collectionsservice/docs`, for example
-[https://ci.kbase.us/services/collectionsservice/docs](https://ci.kbase.us/services/collectionsservice/docs)).
+at `<host>/service/service_wizard2/docs`, for example
+[https://ci.kbase.us/services/service_wizard2/docs](https://ci.kbase.us/services/service_wizard2/docs)).
 
 ### Error codes
 
