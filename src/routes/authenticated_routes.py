@@ -1,17 +1,67 @@
+import traceback
 from typing import Union
+import json
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Query, HTTPException
+from kubernetes.client import ApiException
 
-from src.dependencies import status
+from src.models.models import DynamicServiceStatus
 from src.dependencies.deps import authenticated_user
 from src.models.models import ServiceLogWebSocket
+from src.dependencies.start import start_deployment
 
 router = APIRouter(
     tags=["authenticated", "logs"],
     dependencies=[Depends(authenticated_user)],
-    responses={404: {"description": "Not found"}},
+    responses={
+        404: {"description": "Not found"},
+        500: {"description": "Internal server error"},
+        409: {"description": "AlreadyExistsError"},
+    },
 )
 
+from src.models.models import DynamicServiceStatus, CatalogModuleInfo
+
+
+# @router.get("/get_service_log/")
+# def start(request: Request, module_name: str = Query(...), version: str = Query(...)) -> DynamicServiceStatus:
+#     # Your code here
+#
+#     # Create an instance of DynamicServiceStatus
+#     dynamic_service_status = DynamicServiceStatus(
+#         url="example.com",
+#         version="1.0",
+#         module_name=module_name,
+#         release_tags=["tag1", "tag2"],
+#         git_commit_hash="abcdef12345"
+#     )
+#
+#     # Return the response
+#     return dynamic_service_status
+
+
+@router.get("/start/")
+def start(request: Request, module_name: str = Query(...), version: str = Query(...)) -> DynamicServiceStatus:
+    """
+    :param request:  The request object used to start the service
+    :param module_name: The name of the service module, case-insensitive
+    :param version:      - specify the service version, which can be either:
+                        (1) full git commit hash of the module version
+                        (2) semantic version or semantic version specification
+                            Note: semantic version lookup will only work for
+                            released versions of the module.
+                        (3) release tag, which is one of: dev | beta | release
+
+    :return: DynamicServiceStatus
+    """
+
+    try:
+        return start_deployment(request, module_name, version)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        detail = traceback.format_exc()
+        raise HTTPException(status_code=getattr(e, "status", 500), detail=detail) from e
 
 @router.get("/get_service_log/{service}/{instance_id}")
 def get_service_log(service: str, instance_id: Union[str | None] = None):
@@ -46,20 +96,3 @@ def get_service_log_web_socket(instance_id, socket_url):
     #
     # /* returns connection info for a websocket connection to get realtime service logs */
     # funcdef get_service_log_web_socket(GetServiceLogParams params) returns (list <ServiceLogWebSocket> sockets) authentication required;
-
-
-# @router.get(
-#     "/selections/{selection_id}",
-#     # response_model=models.SelectionVerbose,
-#     # summary="Get a selection",
-#     # description="Get the status and contents of a selection."
-# )
-# def hello(
-#         r: Request,
-#         selection_id: str = "123",
-#         verbose: bool = False,
-# ):  # -> models.SelectionVerbose:
-#     # return await processing_selections.get_selection(
-#     #     app_state.get_app_state(r), selection_id, verbose=verbose
-#     # )
-#     return 123

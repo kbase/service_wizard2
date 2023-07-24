@@ -1,12 +1,24 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Query
 
 from src.configs.settings import Settings
-from src.dependencies.status import list_service_status_helper
+from src.dependencies.status import list_service_status_helper, get_service_status_helper
 
 router = APIRouter(
     tags=["unauthenticated"],
     responses={404: {"description": "Not found"}},
 )
+
+
+@router.get("/get_service_status")
+def get_service_status(request: Request, module_name: str = Query(...), version: str = Query(...)):
+    """
+
+    :param request:
+    :param module_name: The name of the service module, case-insensitive
+    :param version: The version of the service module, which can be either: git commit, semantic version, or release tag
+    :return:
+    """
+    return get_service_status_helper(request, module_name, version)
 
 
 @router.get("/list_service_status")

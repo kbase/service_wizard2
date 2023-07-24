@@ -17,19 +17,19 @@ async def authenticated_user(
         alias="Authorization",
         description="KBase auth token",
     ),
-    kbase_session_cookie: str = Cookie(None, regex=ALPHANUMERIC_PATTERN),
+    kbase_session: str = Cookie(None, regex=ALPHANUMERIC_PATTERN),
     token_cache: LRUCache = Depends(get_token_cache),
 ):
-    if not authorization and not kbase_session_cookie:
+    if not authorization and not kbase_session:
         raise HTTPException(
             status_code=400,
-            detail="Please provide the 'Authorization' header or 'kbase_session_cookie'",
+            detail="Please provide the 'Authorization' header or 'kbase_session' cookie",
         )
 
     # Check to see if the token is valid and trhow an exception if it isnt, but also throw a different exception if the auth service is down
     try:
         check_or_cache_token(
-            token=authorization if authorization else kbase_session_cookie,
+            token=authorization if authorization else kbase_session,
             token_cache=token_cache,
         )
 

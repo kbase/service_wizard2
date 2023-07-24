@@ -1,9 +1,9 @@
-from fastapi import Request, APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from typing import Callable
 
-# from src.routes.unauthenticated_routes import list_service_status, status
-from src.dependencies import status
+from fastapi import Request, APIRouter
+
+from src.rpc.rpc_common import validate_rpc_request, validate_rpc_response, request_path_not_found, JSONRPCResponse
+from src.rpc import authenticated_rpc_routes, unauthenticated_rpc_routes
 
 router = APIRouter(
     tags=["rpc"],
@@ -11,55 +11,24 @@ router = APIRouter(
 )
 
 
-class JSONRequest(BaseModel):
-    version: str = "1.1"
-    method: str
-    params: dict
-    id: int
+
+
+
+request_path_lookup = {
+    "ServiceWizard.list_service_status": unauthenticated_rpc_routes.list_service_status,
+    "ServiceWizard.status": unauthenticated_rpc_routes.status,
+    "ServiceWizard.start": authenticated_rpc_routes.start,
+    # Add more methods and their corresponding lambda functions as needed
+}
 
 
 @router.post("/rpc")
 @router.post("/rpc/")
-async def json_rpc(request: Request):
-    try:
-        json_data = await request.json()
+async def json_rpc(request: Request) -> JSONRPCResponse:
+    method, params, jrpc_id = await validate_rpc_request(request)
+    request_function = request_path_lookup.get(method)
+    if request_function is None:
+        return request_path_not_found(method=method, jrpc_id=jrpc_id)
+    response = request_function(request, params, jrpc_id)
+    return validate_rpc_response(response)
 
-        if not isinstance(json_data, dict):
-            raise ValueError("Invalid JSON format")
-
-        method = json_data.get("method")
-        params = json_data.get("params")
-        jrpc_id = json_data.get("id")
-
-        if not isinstance(method, str) or not isinstance(params, list):
-            raise ValueError(
-                f"Invalid JSON-RPC request format {type(method)} {type(params)}",
-            )
-
-        """
-        * Could do a lookup table here
-        * Not able to call other routes here due to 
-        {"error": "'function' object has no attribute 'list_service_status'"}
-        """
-        if method == "ServiceWizard.list_service_status":
-            return {"result": [status.list_service_status_helper(request)], "id": jrpc_id}
-        elif method == "ServiceWizard.status":
-            return {"result": {}, "id": jrpc_id}
-
-        else:
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Method not found", "id": jrpc_id},
-            )
-
-    except ValueError as e:
-        return JSONResponse(
-            status_code=400,
-            content={"error": str(e)},
-        )
-
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)},
-        )

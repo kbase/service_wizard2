@@ -1,13 +1,15 @@
-
+from datetime import time
 from typing import List
 
 from fastapi import Request, HTTPException
+from kubernetes import client
 
 from src.configs.settings import get_settings
 from src.models.models import DynamicServiceStatus, CatalogModuleInfo
-from src.dependencies.catalog_wrapper import get_hash_to_name_mapping, get_get_module_version
-from src.dependencies.k8_wrapper import get_all_pods
+from src.dependencies.catalog_wrapper import get_hash_to_name_mapping, get_module_version
+from src.dependencies.k8_wrapper import get_all_pods, get_k8s_deployment_status_from_label, query_k8s_deployment_status
 import logging
+
 
 def lookup_module_info(request: Request, module_name: str, git_commit: str) -> CatalogModuleInfo:
     """
@@ -20,7 +22,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
     """
     try:
         logging.info(f"Looking up module_name{module_name} and git_commit{git_commit}")
-        mv = get_get_module_version(request, module_name, git_commit)
+        mv = get_module_version(request, module_name, git_commit)
     except Exception as e:
         print(f"Looking up module_name{module_name} and git_commit{git_commit} failed with error {e}")
         return CatalogModuleInfo(
@@ -34,13 +36,83 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
 
     module_info = CatalogModuleInfo(
         # TODO GET URL FROM THE SERVICE INSTEAD OF GUESSING IT?
-        url=f"{get_settings().kbase_endpoint}/services/dynserv/{git_commit}.{module_name}",
+        url=f"{get_settings().kbase_endpoint}/dynserv/{mv['git_commit_hash']}.{mv['module_name']}.",
         version=mv["version"],
         module_name=mv["module_name"],
         release_tags=mv["release_tags"],
         git_commit_hash=mv["git_commit_hash"],
     )
     return module_info
+
+
+def get_deployment_status(request, label_selector: client.V1LabelSelector):
+    """
+    Retrieve the status of a deployment based on the module version and git commit hash.
+
+    :param module_version: The module version.
+    :param git_commit_hash: The git commit hash.
+    :return: The deployment status.
+    """
+    # Specify the deployment spec
+    # import ipdb;
+    # ipdb.set_trace()
+
+    deployment_status = get_k8s_deployment_status_from_label(request, label_selector=label_selector)
+    for item in deployment_status:
+        print("Deployment status is")
+        print(item)
+    return []
+
+
+import time
+
+
+def get_service_status_with_retries(request, module_name, version, retries=5) -> DynamicServiceStatus:
+    # if there is some delay in starting up, then give it a couple seconds
+    for _ in range(retries):
+        try:
+            status = get_service_status_helper(request, module_name, version)
+            if status.up == 1:
+                return status
+        except Exception:
+            pass
+        time.sleep(2)
+
+    raise Exception("Failed to get service status after maximum retries")
+
+
+def get_service_status_helper(request, module_name, version) -> DynamicServiceStatus:
+    """
+    Retrieve the status of a service based on the module version and git commit hash.
+
+    :param module_version: The module version.
+    :param git_commit_hash: The git commit hash.
+    :return: The service status.
+    """
+    # Specify the deployment spec
+    # import ipdb;
+    # ipdb.set_trace()
+    module_info = lookup_module_info(request=request, module_name=module_name, git_commit=version)  # type: 'CatalogModuleInfo'
+    deployment = query_k8s_deployment_status(
+        request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash
+    )  # type: 'V1Deployment'
+    if deployment:
+        return DynamicServiceStatus(
+            url=module_info.url,
+            version=module_info.version,
+            module_name=module_info.module_name,
+            release_tags=module_info.release_tags,
+            git_commit_hash=module_info.git_commit_hash,
+            deployment_name=deployment.metadata.name,
+            replicas=deployment.spec.replicas,
+            updated_replicas=deployment.status.updated_replicas,
+            ready_replicas=deployment.status.ready_replicas,
+            available_replicas=deployment.status.available_replicas,
+            unavailable_replicas=deployment.status.unavailable_replicas,
+        )
+
+    else:
+        raise HTTPException(status_code=404, detail=f"No dynamic service found with module_name={module_name} and version={version}")
 
 
 def list_service_status_helper(request: Request) -> List[DynamicServiceStatus]:
