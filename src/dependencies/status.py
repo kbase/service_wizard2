@@ -36,7 +36,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
 
     module_info = CatalogModuleInfo(
         # TODO GET URL FROM THE SERVICE INSTEAD OF GUESSING IT?
-        url=f"{get_settings().kbase_endpoint}/dynserv/{mv['git_commit_hash']}.{mv['module_name']}.",
+        url=f"{get_settings().external_ds_url}/{mv['git_commit_hash']}.{mv['module_name']}.",
         version=mv["version"],
         module_name=mv["module_name"],
         release_tags=mv["release_tags"],

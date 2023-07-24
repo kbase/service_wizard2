@@ -64,7 +64,7 @@ class DynamicServiceStatus(BaseModel):
     git_commit_hash: str  # Git commit hash of the service
     status: ServiceStatus  # Service status based on replica counts
     version: str  # Version of the service
-    #hash: str to be set to git_commit_hash
+    hash: str = None
     release_tags: List[str]  # List of release tags for the service
     url: str  # URL of the service
     module_name: str  # Name of the service module
@@ -115,6 +115,9 @@ class DynamicServiceStatus(BaseModel):
         data["ready_replicas"] = data.get("ready_replicas") or 0
         data["available_replicas"] = data.get("available_replicas") or 0
         data["unavailable_replicas"] = data.get("unavailable_replicas") or 0
+
+        # Set the 'hash' attribute to the value of 'git_commit_hash'
+        data["hash"] = data.get("git_commit_hash")
 
         # Calculate the 'up', 'status', and 'health' fields based on the provided data
         data["up"] = self.calculate_up(data["replicas"], data["available_replicas"])
