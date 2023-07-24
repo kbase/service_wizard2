@@ -1,3 +1,4 @@
+*Pipfile
 .env
 .coverage
 __pycache__
