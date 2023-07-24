@@ -15,7 +15,7 @@ import requests_mock
 from src.clients.CatalogClient import Catalog
 from src.configs.settings import get_settings
 from src.factory import create_app
-from src.dependencies.deps import authenticated_user
+from dependencies.authentication import authenticated_user
 
 from dotenv import load_dotenv
 
@@ -199,10 +199,17 @@ def test_get_status_nonexistent(client_with_authorization):
 
 
 def test_get_good_status(client_with_authorization):
-    {'git_commit_hash': '8a9bb32f9e2ec5169815b984de8e8df550699630', 'status': 'active', 'version': '0.5.2',
-     'hash': '8a9bb32f9e2ec5169815b984de8e8df550699630', 'release_tags': ['release', 'beta', 'dev'],
-     'url': 'https://ci.kbase.us:443/dynserv/8a9bb32f9e2ec5169815b984de8e8df550699630.NarrativeService',
-     'module_name': 'NarrativeService', 'health': 'healthy', 'up': 1}
+    {
+        "git_commit_hash": "8a9bb32f9e2ec5169815b984de8e8df550699630",
+        "status": "active",
+        "version": "0.5.2",
+        "hash": "8a9bb32f9e2ec5169815b984de8e8df550699630",
+        "release_tags": ["release", "beta", "dev"],
+        "url": "https://ci.kbase.us:443/dynserv/8a9bb32f9e2ec5169815b984de8e8df550699630.NarrativeService",
+        "module_name": "NarrativeService",
+        "health": "healthy",
+        "up": 1,
+    }
 
     with client_with_authorization() as client:
         response = client.get("/get_service_status?module_name=NarrativeService&version=beta")

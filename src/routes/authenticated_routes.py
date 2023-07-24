@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Request, Query, HTTPException
 from kubernetes.client import ApiException
 
 from src.models.models import DynamicServiceStatus
-from src.dependencies.deps import authenticated_user
+from dependencies.authentication import authenticated_user
 from src.models.models import ServiceLogWebSocket
 from src.dependencies.start import start_deployment
 
@@ -62,6 +62,7 @@ def start(request: Request, module_name: str = Query(...), version: str = Query(
     except Exception as e:
         detail = traceback.format_exc()
         raise HTTPException(status_code=getattr(e, "status", 500), detail=detail) from e
+
 
 @router.get("/get_service_log/{service}/{instance_id}")
 def get_service_log(service: str, instance_id: Union[str | None] = None):

@@ -60,7 +60,7 @@ class ServiceStatus(Enum):
 
 
 class DynamicServiceStatus(BaseModel):
-    #ServiceWizard1 Fields
+    # ServiceWizard1 Fields
     git_commit_hash: str  # Git commit hash of the service
     status: ServiceStatus  # Service status based on replica counts
     version: str  # Version of the service
@@ -77,8 +77,6 @@ class DynamicServiceStatus(BaseModel):
     ready_replicas: int = 0  # Number of replicas that are ready
     available_replicas: int = 0  # Number of replicas that are available for scaling or updates
     unavailable_replicas: int = 0  # Number of replicas that are unavailable
-
-
 
     @classmethod
     def calculate_up(cls, replicas: int, available_replicas: int) -> int:

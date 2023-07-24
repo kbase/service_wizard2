@@ -20,6 +20,7 @@ from src.dependencies.status import get_service_status_with_retries
 class ServiceAlreadyExistsException(HTTPException):
     pass
 
+
 def get_env(request, module_name, module_version) -> Dict[str, str]:
     settings = request.app.state.settings  # type: Settings
     environ_map = {
@@ -59,8 +60,6 @@ Using Pods directly gives you fine-grained control over the individual container
 def start_deployment(request: Request, module_name, module_version) -> DynamicServiceStatus:
     catalog_module_version = get_module_version(request, module_name, module_version, require_dynamic_service=True)
 
-
-
     # Warning, if any of these don't follow k8 regex filter conventions, the deployment will fail
     labels = {
         "us.kbase.dynamicservice": "true",
@@ -91,10 +90,11 @@ def start_deployment(request: Request, module_name, module_version) -> DynamicSe
         )
     except ApiException as e:
         if e.status == 409:  # AlreadyExistsError
-            error_message = f"The deployment with name '{module_name}' and version '{module_version}' already exists. " + \
-                            f"Commit:{catalog_module_version['git_commit_hash']} Version:{catalog_module_version['version']} " + \
-                            f"Kubernetes ApiException: {json.dumps(e.body, indent=2, ensure_ascii=False) if e.body else str(e)}".replace(
-                                "\\", "")
+            error_message = (
+                f"The deployment with name '{module_name}' and version '{module_version}' already exists. "
+                + f"Commit:{catalog_module_version['git_commit_hash']} Version:{catalog_module_version['version']} "
+                + f"Kubernetes ApiException: {json.dumps(e.body, indent=2, ensure_ascii=False) if e.body else str(e)}".replace("\\", "")
+            )
             logging.warning(error_message)
         else:
             detail = traceback.format_exc()

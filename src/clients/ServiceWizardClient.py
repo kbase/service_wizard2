@@ -7,6 +7,7 @@
 ############################################################
 
 from __future__ import print_function
+
 # the following is a hack to get the baseclient to import whether we're in a
 # package or not. This makes pep8 unhappy hence the annotations.
 try:
@@ -18,28 +19,37 @@ except ImportError:
 
 
 class ServiceWizard(object):
-
     def __init__(
-            self, url=None, timeout=30 * 60, user_id=None,
-            password=None, token=None, ignore_authrc=False,
-            trust_all_ssl_certificates=False,
-            auth_svc='https://ci.kbase.us/services/auth/api/legacy/KBase/Sessions/Login'):
+        self,
+        url=None,
+        timeout=30 * 60,
+        user_id=None,
+        password=None,
+        token=None,
+        ignore_authrc=False,
+        trust_all_ssl_certificates=False,
+        auth_svc="https://ci.kbase.us/services/auth/api/legacy/KBase/Sessions/Login",
+    ):
         if url is None:
-            raise ValueError('A url is required')
+            raise ValueError("A url is required")
         self._service_ver = None
         self._client = _BaseClient(
-            url, timeout=timeout, user_id=user_id, password=password,
-            token=token, ignore_authrc=ignore_authrc,
+            url,
+            timeout=timeout,
+            user_id=user_id,
+            password=password,
+            token=token,
+            ignore_authrc=ignore_authrc,
             trust_all_ssl_certificates=trust_all_ssl_certificates,
-            auth_svc=auth_svc)
+            auth_svc=auth_svc,
+        )
 
     def version(self, context=None):
         """
         Get the version of the deployed service wizard endpoint.
         :returns: instance of String
         """
-        return self._client.call_method('ServiceWizard.version',
-                                        [], self._service_ver, context)
+        return self._client.call_method("ServiceWizard.version", [], self._service_ver, context)
 
     def start(self, service, context=None):
         """
@@ -73,8 +83,7 @@ class ServiceWizard(object):
            type "boolean", parameter "status" of String, parameter "health"
            of String
         """
-        return self._client.call_method('ServiceWizard.start',
-                                        [service], self._service_ver, context)
+        return self._client.call_method("ServiceWizard.start", [service], self._service_ver, context)
 
     def stop(self, service, context=None):
         """
@@ -108,8 +117,7 @@ class ServiceWizard(object):
            type "boolean", parameter "status" of String, parameter "health"
            of String
         """
-        return self._client.call_method('ServiceWizard.stop',
-                                        [service], self._service_ver, context)
+        return self._client.call_method("ServiceWizard.stop", [service], self._service_ver, context)
 
     def list_service_status(self, params, context=None):
         """
@@ -121,7 +129,7 @@ class ServiceWizard(object):
            name of the service module version         - semantic version
            number of the service module git_commit_hash - git commit hash of
            the service module release_tags    - list of release tags
-           currently for this service module (dev/beta/release) url          
+           currently for this service module (dev/beta/release) url
            - the url of the service up              - 1 if the service is up,
            0 otherwise status          - status of the service as reported by
            rancher health          - health of the service as reported by
@@ -133,8 +141,7 @@ class ServiceWizard(object):
            type "boolean", parameter "status" of String, parameter "health"
            of String
         """
-        return self._client.call_method('ServiceWizard.list_service_status',
-                                        [params], self._service_ver, context)
+        return self._client.call_method("ServiceWizard.list_service_status", [params], self._service_ver, context)
 
     def get_service_status(self, service, context=None):
         """
@@ -170,8 +177,7 @@ class ServiceWizard(object):
            type "boolean", parameter "status" of String, parameter "health"
            of String
         """
-        return self._client.call_method('ServiceWizard.get_service_status',
-                                        [service], self._service_ver, context)
+        return self._client.call_method("ServiceWizard.get_service_status", [service], self._service_ver, context)
 
     def get_service_status_without_restart(self, service, context=None):
         """
@@ -202,8 +208,7 @@ class ServiceWizard(object):
            type "boolean", parameter "status" of String, parameter "health"
            of String
         """
-        return self._client.call_method('ServiceWizard.get_service_status_without_restart',
-                                        [service], self._service_ver, context)
+        return self._client.call_method("ServiceWizard.get_service_status_without_restart", [service], self._service_ver, context)
 
     def get_service_log(self, params, context=None):
         """
@@ -226,8 +231,7 @@ class ServiceWizard(object):
            parameter "instance_id" of String, parameter "log" of list of
            String
         """
-        return self._client.call_method('ServiceWizard.get_service_log',
-                                        [params], self._service_ver, context)
+        return self._client.call_method("ServiceWizard.get_service_log", [params], self._service_ver, context)
 
     def get_service_log_web_socket(self, params, context=None):
         """
@@ -251,9 +255,7 @@ class ServiceWizard(object):
            structure: parameter "instance_id" of String, parameter
            "socket_url" of String
         """
-        return self._client.call_method('ServiceWizard.get_service_log_web_socket',
-                                        [params], self._service_ver, context)
+        return self._client.call_method("ServiceWizard.get_service_log_web_socket", [params], self._service_ver, context)
 
     def status(self, context=None):
-        return self._client.call_method('ServiceWizard.status',
-                                        [], self._service_ver, context)
+        return self._client.call_method("ServiceWizard.status", [], self._service_ver, context)

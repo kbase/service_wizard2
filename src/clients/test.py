@@ -10,11 +10,12 @@ load_dotenv()
 # print(cc.list_volume_mounts(filter={"module_name": "StaticNarrative", "version": "beta"}))
 
 from ServiceWizardClient import ServiceWizard
+
 # sw = ServiceWizard(url="https://ci.kbase.us/services/service_wizard", token=os.environ.get("CATALOG_ADMIN_TOKEN"))
 # a = sw.start({"module_name" : "NarrativeService", "version": "0.3.13"})
 
 sw2 = ServiceWizard(url="http://localhost:5002/rpc/", token=os.environ.get("CATALOG_ADMIN_TOKEN"))
-b = sw2.start({"module_name" : "NarrativeService", "version": "beta"})
+b = sw2.start({"module_name": "NarrativeService", "version": "beta"})
 
 # print(a)
 print(b)

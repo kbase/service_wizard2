@@ -56,7 +56,7 @@ def create_app(
     app = FastAPI(root_path=settings.root_path)
 
     app.state.settings = settings
-    app.state.token_cache = token_cache
+    app.state.global_token_cache = token_cache
     app.state.catalog_cache = catalog_cache
     app.state.catalog_client = catalog_client
     app.state.k8s_core_client = k8s_core_client
