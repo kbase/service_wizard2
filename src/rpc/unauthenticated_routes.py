@@ -10,8 +10,9 @@ async def list_service_status(request: Request, params: dict, jrpc_id: str) -> J
     if params:
         logging.debug(f"dropping list_service_status params since SW1 doesn't use them: {params}")
     # TODO Catch HTTP Exceptions and return them as JSONRPCResponse errors
-    # Double array as per current spec
-    return JSONRPCResponse(id=jrpc_id, result=[get_all_dynamic_service_statuses(request)])
+
+    statuses = get_all_dynamic_service_statuses(request)
+    return JSONRPCResponse(id=jrpc_id, result=[statuses])
 
 
 async def status(request: Request, params: dict, jrpc_id: str) -> dict:
