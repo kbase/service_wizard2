@@ -1,20 +1,15 @@
-from http.client import HTTPResponse
-from typing import Callable, Union
+from typing import Callable
 
 from fastapi import Request, APIRouter, HTTPException
 from fastapi.responses import Response, JSONResponse
 
+from src.rpc import authenticated_routes, unauthenticated_routes
 from src.rpc.common import validate_rpc_request, validate_rpc_response, rpc_auth
-from src.rpc.models import JSONRPCResponse
 from src.rpc.error_responses import (
     method_not_found,
-    AuthError,
-    AuthInvalidTokenError,
-    json_rpc_response_to_exception,
-    no_authenticated_headers_passed,
-    token_validation_failed,
+    json_exception,
 )
-from src.rpc import authenticated_routes, unauthenticated_routes
+from src.rpc.models import JSONRPCResponse
 
 router = APIRouter(
     tags=["rpc"],
@@ -35,8 +30,13 @@ known_methods = {**unauthenticated_routes, **authenticated_routes}
 
 @router.post("/rpc", response_model=None)
 @router.post("/rpc/", response_model=None)
+@router.post("/", response_model=None)
 async def json_rpc(request: Request) -> Response | HTTPException | JSONRPCResponse | JSONResponse:
-    method, params, jrpc_id = await validate_rpc_request(request)
+    try:
+        method, params, jrpc_id = await validate_rpc_request(request)
+    except Exception as e:
+        return json_exception(e)
+
     request_function: Callable = known_methods.get(method)
     if request_function is None:
         return method_not_found(method=method, jrpc_id=jrpc_id)

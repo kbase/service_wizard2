@@ -18,6 +18,8 @@ class AuthInvalidTokenError(ServiceWizardException):
 def method_not_found(method, jrpc_id) -> JSONRPCResponse:
     return JSONRPCResponse(id=jrpc_id, error=ErrorResponse(message=f"Method '{method}' not found", code=-32601, name="Method not found", error=None))
 
+def json_exception(exception: Exception) -> JSONRPCResponse:
+    return JSONRPCResponse(id=None, error=ErrorResponse(message=f"{exception}", code=-32700, name="No JSON object could be decoded", error=None))
 
 def no_authenticated_headers_passed(jrpc_id):
     return JSONRPCResponse(

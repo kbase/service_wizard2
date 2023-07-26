@@ -12,7 +12,7 @@ class ErrorResponse(BaseModel):
 
 class JSONRPCResponse(BaseModel):
     version: str = "1.0"
-    id: int
+    id: Optional[int]
     error: Optional[ErrorResponse]
     result: Optional[List[dict]] = Field(default_factory=lambda: None)
 
@@ -21,9 +21,13 @@ class JSONRPCResponse(BaseModel):
         response_dict = super().dict(*args, **kwargs)
         if self.result is None:
             response_dict.pop("result", None)
+
         if self.error is None:
             response_dict.pop("error", None)
             # TODO: Check this functionality
             response_dict.pop("version", None)
+
+        if self.id is None:
+            response_dict.pop("id", None)
 
         return response_dict

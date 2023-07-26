@@ -26,14 +26,14 @@ def list_service_status(request: Request):
     return list_service_status_helper(request)
 
 
-@router.get("/")
 @router.get("/status")
+@router.get("/")
 async def status(request: Request):
     settings = request.app.state.settings  # type: Settings
     return [
         {
             "state": "OK",
-            "message": "What's up, doc?",
+            "message": "Post requests should be sent here or to /rpc",
             "git_url": settings.git_url,
             "git_commit_hash": settings.vcs_ref,
         }
