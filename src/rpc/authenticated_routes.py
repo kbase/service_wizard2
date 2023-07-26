@@ -4,7 +4,6 @@ from fastapi import Request
 
 from src.clients.baseclient import ServerError
 from src.dependencies.start import start_deployment
-from src.rpc.common import rpc_auth
 from src.rpc.models import ErrorResponse, JSONRPCResponse
 
 

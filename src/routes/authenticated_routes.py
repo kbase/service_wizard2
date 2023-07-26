@@ -1,14 +1,11 @@
 import traceback
 from typing import Union
-import json
 
 from fastapi import APIRouter, Depends, Request, Query, HTTPException
-from kubernetes.client import ApiException
 
-from src.models.models import DynamicServiceStatus
-from dependencies.authentication import authenticated_user
-from src.models.models import ServiceLogWebSocket
+from src.dependencies.authentication import authenticated_user
 from src.dependencies.start import start_deployment
+from src.models.models import ServiceLogWebSocket
 
 router = APIRouter(
     tags=["authenticated", "logs"],
@@ -20,7 +17,7 @@ router = APIRouter(
     },
 )
 
-from src.models.models import DynamicServiceStatus, CatalogModuleInfo
+from src.models.models import DynamicServiceStatus
 
 
 # @router.get("/get_service_log/")

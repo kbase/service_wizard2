@@ -2,7 +2,7 @@ import logging
 
 from fastapi.requests import Request
 
-from dependencies.status import get_all_dynamic_service_statuses
+from src.dependencies.status import get_all_dynamic_service_statuses
 from src.rpc.models import JSONRPCResponse
 
 
