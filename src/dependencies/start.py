@@ -4,7 +4,7 @@ import re
 import time
 import traceback
 
-from typing import Dict
+from typing import Dict, Tuple
 from fastapi import Request, HTTPException
 
 from fastapi import Request
@@ -57,27 +57,47 @@ Using Pods directly gives you fine-grained control over the individual container
 """
 
 
-def start_deployment(request: Request, module_name, module_version) -> DynamicServiceStatus:
-    catalog_module_version = get_module_version(request, module_name, module_version, require_dynamic_service=True)
-
+def _setup_metdata(module_name, git_commit_hash, module_version, catalog_version, catalog_git_url) -> Tuple[Dict, Dict]:
     # Warning, if any of these don't follow k8 regex filter conventions, the deployment will fail
     labels = {
         "us.kbase.dynamicservice": "true",
-        "us.kbase.module.git_commit_hash": catalog_module_version["git_commit_hash"],
+        "us.kbase.module.git_commit_hash": git_commit_hash,
         "us.kbase.module.module_name": module_name.lower(),
     }
-
     annotations = {
-        "git_commit_hash": catalog_module_version["git_commit_hash"],
+        "git_commit_hash": git_commit_hash,
         "module_name": module_name,
         "module_version_from_request": module_version,
-        "us.kbase.catalog.moduleversion": catalog_module_version["version"],
-        "description": re.sub(r"^(https?://)", "", catalog_module_version["git_url"]),
+        "us.kbase.catalog.moduleversion": catalog_version,
+        "description": re.sub(r"^(https?://)", "", catalog_git_url),
     }
+    return labels, annotations
+    # labels = {
+    #     "us.kbase.dynamicservice": "true",
+    #     "us.kbase.module.git_commit_hash": catalog_module_version["git_commit_hash"],
+    #     "us.kbase.module.module_name": module_name.lower(),
+    # }
+    #
+    # annotations = {
+    #     "git_commit_hash": catalog_module_version["git_commit_hash"],
+    #     "module_name": module_name,
+    #     "module_version_from_request": module_version,
+    #     "us.kbase.catalog.moduleversion": catalog_module_version["version"],
+    #     "description": re.sub(r"^(https?://)", "", catalog_module_version["git_url"]),
+    # }
 
+
+def start_deployment(request: Request, module_name, module_version) -> DynamicServiceStatus:
+    catalog_module_version = get_module_version(request, module_name, module_version, require_dynamic_service=True)
+    labels, annotations = _setup_metdata(
+        module_name=module_name,
+        git_commit_hash=catalog_module_version["git_commit_hash"],
+        module_version=module_version,
+        catalog_version=catalog_module_version["version"],
+        catalog_git_url=catalog_module_version["git_url"],
+    )
     env = get_env(request, module_name, module_version)
     mounts = get_volume_mounts(request, module_name, module_version)
-
     try:
         create_and_launch_deployment(
             request=request,
@@ -100,5 +120,6 @@ def start_deployment(request: Request, module_name, module_version) -> DynamicSe
         else:
             detail = traceback.format_exc()
             raise HTTPException(status_code=e.status, detail=detail) from e
+    # TODO Create service here! Or add it into above function?
 
     return get_service_status_with_retries(request, module_name, module_version)

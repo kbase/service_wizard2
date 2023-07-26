@@ -17,9 +17,9 @@ def get_k8s_app_client(request: Request) -> client.AppsV1Api:
 
 
 def get_pods_in_namespace(
-        k8s_client: client.CoreV1Api,
-        field_selector=None,
-        label_selector="dynamic-service=true",
+    k8s_client: client.CoreV1Api,
+    field_selector=None,
+    label_selector="dynamic-service=true",
 ) -> client.V1PodList:
     """
     Retrieve a list of pods in a specific namespace based on the provided field and label selectors.
@@ -148,4 +148,4 @@ def get_k8s_deployment_status_from_label(request, label_selector: client.V1Label
 def get_k8s_deployments(request, label_selector="us.kbase.dynamicservice=true"):
     # TODO Cache this for 5 seconds, so all requests within that time don't query the k8 api
     apps_v1_api = get_k8s_app_client(request)
-    return apps_v1_api.list_namespaced_deployment(get_settings().namespace,label_selector=label_selector).items
+    return apps_v1_api.list_namespaced_deployment(get_settings().namespace, label_selector=label_selector).items
