@@ -1,4 +1,5 @@
 from datetime import time
+from pprint import pprint
 from typing import List
 
 from fastapi import Request, HTTPException
@@ -7,7 +8,7 @@ from kubernetes import client
 from src.configs.settings import get_settings
 from src.models.models import DynamicServiceStatus, CatalogModuleInfo
 from src.dependencies.catalog_wrapper import get_hash_to_name_mapping, get_module_version
-from src.dependencies.k8_wrapper import get_all_pods, get_k8s_deployment_status_from_label, query_k8s_deployment_status
+from src.dependencies.k8_wrapper import get_all_pods, get_k8s_deployment_status_from_label, query_k8s_deployment_status, get_k8s_deployments
 import logging
 
 
@@ -81,6 +82,7 @@ def get_service_status_with_retries(request, module_name, version, retries=5) ->
     raise Exception("Failed to get service status after maximum retries")
 
 
+
 def get_service_status_helper(request, module_name, version) -> DynamicServiceStatus:
     """
     Retrieve the status of a service based on the module version and git commit hash.
@@ -94,7 +96,7 @@ def get_service_status_helper(request, module_name, version) -> DynamicServiceSt
     # ipdb.set_trace()
     module_info = lookup_module_info(request=request, module_name=module_name, git_commit=version)  # type: 'CatalogModuleInfo'
     deployment = query_k8s_deployment_status(
-        request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash
+            request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash
     )  # type: 'V1Deployment'
     if deployment:
         return DynamicServiceStatus(
@@ -113,6 +115,42 @@ def get_service_status_helper(request, module_name, version) -> DynamicServiceSt
 
     else:
         raise HTTPException(status_code=404, detail=f"No dynamic service found with module_name={module_name} and version={version}")
+
+
+
+def get_all_dynamic_service_statuses(request: Request) -> List[DynamicServiceStatus]:
+    module_hash_lookup = get_hash_to_name_mapping(request)
+    if len(module_hash_lookup) == 0:
+        raise HTTPException(status_code=404, detail="No dynamic services found in catalog!")
+
+    deployment_statuses = get_k8s_deployments(request) # type List[V1Deployment]
+    if len(deployment_statuses) == 0:
+        raise HTTPException(status_code=404, detail=f"No deployments found in kubernetes cluster with namespace={get_settings().namespace} and "
+                                                    "labels=dynamic-service=true!")
+
+    #TODO see if you need to get the list based on running deployments or based on the catalog
+    dynamic_service_statuses = []
+    for deployment in deployment_statuses:
+        deployment = deployment #type: V1Deployment
+        pprint(deployment.metadata.annotations)
+        module_name = deployment.metadata.annotations["module_name"]
+        git_commit = deployment.metadata.annotations["git_commit_hash"]
+        module_info = lookup_module_info(request=request, module_name=module_name, git_commit=git_commit)  # type: 'CatalogModuleInfo'
+        dynamic_service_statuses.append(DynamicServiceStatus(
+            url=module_info.url,
+            version=module_info.version,
+            module_name=module_info.module_name,
+            release_tags=module_info.release_tags,
+            git_commit_hash=module_info.git_commit_hash,
+            deployment_name=deployment.metadata.name,
+            replicas=deployment.spec.replicas,
+            updated_replicas=deployment.status.updated_replicas,
+            ready_replicas=deployment.status.ready_replicas,
+            available_replicas=deployment.status.available_replicas,
+            unavailable_replicas=deployment.status.unavailable_replicas,
+        ))
+    return dynamic_service_statuses
+
 
 
 def list_service_status_helper(request: Request) -> List[DynamicServiceStatus]:

@@ -8,7 +8,6 @@ from src.rpc.common import rpc_auth
 from src.rpc.models import ErrorResponse, JSONRPCResponse
 
 
-@rpc_auth
 async def start(request: Request, params: list[dict], jrpc_id: int) -> JSONRPCResponse:
     """
     Start a service

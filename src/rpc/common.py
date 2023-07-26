@@ -3,7 +3,13 @@ from functools import wraps
 from fastapi import HTTPException, Request
 
 from dependencies.authentication import authenticated_user
-from src.rpc.error_responses import no_authenticated_headers_passed
+from src.rpc.error_responses import (
+    no_authenticated_headers_passed,
+    token_validation_failed,
+    json_rpc_response_to_exception,
+    AuthError,
+    AuthInvalidTokenError,
+)
 from src.rpc.models import JSONRPCResponse
 
 
@@ -38,40 +44,20 @@ def validate_rpc_response(response: JSONRPCResponse):
     return response
 
 
-def rpc_auth(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        # Extract the request object
-        for arg in args:
-            if isinstance(arg, Request):
-                request = arg
-                break
-        else:
-            raise HTTPException(status_code=500, detail="Request object not provided to the decorated function")
+def rpc_auth(request: Request, jrpc_id):
+    # Extract the Authorization header and the kbase_session cookie
+    authorization = request.headers.get("Authorization")
+    kbase_session = request.cookies.get("kbase_session")
 
-        # Extract the id from the request's body
-        request_body = await request.json()
-        jrpc_id = request_body.get("id", "Unknown")
+    # If no authorization provided, raise exception
 
-        # Extract the Authorization header and the kbase_session cookie
-        authorization = request.headers.get("Authorization")
-        kbase_session = request.cookies.get("kbase_session")
+    if not authorization and not kbase_session:
+        return json_rpc_response_to_exception(no_authenticated_headers_passed(jrpc_id))
 
-        # If no authorization provided, raise exception
-        if not authorization and not kbase_session:
-            no_authenticated_headers_passed(jrpc_id)
-
-        # Call the authenticated_user function
-        try:
-            user = await authenticated_user(authorization, kbase_session, request.app.state.global_token_cache)
-        except HTTPException as e:
-            # Reraise any exceptions caught
-            raise e
-
-        # Add the user to kwargs
-        kwargs["user"] = user
-
-        # Call the original function
-        return await func(*args, **kwargs)
-
-    return wrapper
+    # Call the authenticated_user function
+    try:
+        authenticated_user(authorization, kbase_session, request.app.state.global_token_cache)
+    except HTTPException as e:
+        return e
+    except Exception:
+        return json_rpc_response_to_exception(token_validation_failed(jrpc_id))

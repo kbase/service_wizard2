@@ -68,6 +68,7 @@ def start_deployment(request: Request, module_name, module_version) -> DynamicSe
     }
 
     annotations = {
+        "git_commit_hash": catalog_module_version["git_commit_hash"],
         "module_name": module_name,
         "module_version_from_request": module_version,
         "us.kbase.catalog.moduleversion": catalog_module_version["version"],

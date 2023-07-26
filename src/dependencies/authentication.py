@@ -88,7 +88,6 @@ async def authenticated_user(
             token=authorization if authorization else kbase_session,
             token_cache=auth_token_cache,
         )
-
     except HTTPException as e:
         if e.status_code == 401:
             raise e
