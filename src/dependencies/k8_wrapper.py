@@ -145,7 +145,7 @@ def get_k8s_deployment_status_from_label(request, label_selector: client.V1Label
     return _get_deployment_status(request, label_selector_text)
 
 
-def get_k8s_deployments(request, label_selector="dynamic-service=true"):
+def get_k8s_deployments(request, label_selector="us.kbase.dynamicservice=true"):
     # TODO Cache this for 5 seconds, so all requests within that time don't query the k8 api
     apps_v1_api = get_k8s_app_client(request)
-    return apps_v1_api.list_namespaced_deployment(get_settings().namespace,).items
+    return apps_v1_api.list_namespaced_deployment(get_settings().namespace,label_selector=label_selector).items

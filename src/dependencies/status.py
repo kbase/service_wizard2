@@ -133,8 +133,12 @@ def get_all_dynamic_service_statuses(request: Request) -> List[DynamicServiceSta
     for deployment in deployment_statuses:
         deployment = deployment #type: V1Deployment
         pprint(deployment.metadata.annotations)
-        module_name = deployment.metadata.annotations["module_name"]
-        git_commit = deployment.metadata.annotations["git_commit_hash"]
+        try:
+            module_name = deployment.metadata.annotations["module_name"]
+            git_commit = deployment.metadata.annotations["git_commit_hash"]
+        except KeyError:
+            # If someone deployed a bad service into this namespace, this will protect this query from failing
+            continue
         module_info = lookup_module_info(request=request, module_name=module_name, git_commit=git_commit)  # type: 'CatalogModuleInfo'
         dynamic_service_statuses.append(DynamicServiceStatus(
             url=module_info.url,
