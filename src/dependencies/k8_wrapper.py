@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-
+from src.configs.settings import get_settings
 from fastapi import Request
 from kubernetes import client
 from kubernetes.client import (
@@ -15,21 +15,22 @@ from kubernetes.client import (
     V1IngressBackend,
     V1IngressRule,
     ApiException,
+    CoreV1Api,
+    AppsV1Api,
+    NetworkingV1Api,
 )
 
-from src.configs.settings import get_settings
+
+def get_k8s_core_client(request: Request) -> CoreV1Api:
+    return request.app.state.k8s_clients.core_client
 
 
-def get_k8s_core_client(request: Request) -> client.CoreV1Api:
-    return request.app.state.k8s_core_client
+def get_k8s_app_client(request: Request) -> AppsV1Api:
+    return request.app.state.k8s_clients.app_client
 
 
-def get_k8s_app_client(request: Request) -> client.AppsV1Api:
-    return request.app.state.k8s_app_client
-
-
-def get_k8s_networking_client(request: Request) -> client.NetworkingV1Api:
-    return request.app.state.k8s_network_client
+def get_k8s_networking_client(request: Request) -> NetworkingV1Api:
+    return request.app.state.k8s_clients.network_client
 
 
 def get_pods_in_namespace(

@@ -21,15 +21,13 @@ from src.clients.KubernetesClients import K8sClients
 from fastapi.middleware.gzip import GZipMiddleware
 
 
-
-
 def create_app(
-        token_cache: LRUCache = LRUCache(maxsize=100, ttl=300),
-        catalog_cache: LRUCache = LRUCache(maxsize=100, ttl=300),
-        catalog_client: Optional[CachedCatalogClient] = None,
-        auth_client: Optional[CachedAuthClient] = None,
-        k8s_clients: K8sClients = None,
-        settings: Optional[Settings] = None,
+    token_cache: LRUCache = LRUCache(maxsize=100, ttl=300),
+    catalog_cache: LRUCache = LRUCache(maxsize=100, ttl=300),
+    catalog_client: Optional[CachedCatalogClient] = None,
+    auth_client: Optional[CachedAuthClient] = None,
+    k8s_clients: K8sClients = None,
+    settings: Optional[Settings] = None,
 ) -> FastAPI:
     """
     Create the app with the required dependencies.
@@ -57,24 +55,24 @@ def create_app(
             traces_sample_rate=1.0,
             http_proxy=os.environ.get("HTTP_PROXY"),
         )
-
-    app = FastAPI(root_path=settings.root_path) # type: FastAPI
+    if not settings:
+        settings = get_settings()
+    app = FastAPI(root_path=settings.root_path)  # type: FastAPI
 
     # TODO Combine the cache and catalog client together into a class called CatalogClient
     # Change the client to be that, and remove the caches from the state object
 
     # Settings
-    app.state.settings = settings if settings else get_settings()
-    app.state.cc = catalog_client or CachedCatalogClient(app.state.settings)
-    app.state.k8s_clients = k8s_clients if k8s_clients else K8sClients(settings=app.state.settings)
-    app.state.auth_client = auth_client if auth_client else CachedAuthClient(settings=app.state.settings)
+    app.state.settings = settings
+    app.state.catalog_client = catalog_client or CachedCatalogClient(settings=settings)
+    app.state.k8s_clients = k8s_clients if k8s_clients else K8sClients(settings=settings)
+    app.state.auth_client = auth_client if auth_client else CachedAuthClient(settings=settings)
     app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
     app.include_router(sw2_rpc_router)
 
     # Middleware Do we need this?
     app.add_middleware(GZipMiddleware, minimum_size=1000)
-
 
     Instrumentator().instrument(app).expose(app)
 

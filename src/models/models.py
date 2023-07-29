@@ -12,8 +12,6 @@ class ServiceLogWebSocket(BaseModel):
     socket_url: str
 
 
-
-
 class CatalogModuleInfo(BaseModel):
     url: str
     version: str

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Query
 
 from src.configs.settings import Settings
-from src.dependencies.status import get_dynamic_service_status_helper
+from src.dependencies.status import get_dynamic_service_status_helper, get_all_dynamic_service_statuses
 
 router = APIRouter(
     tags=["unauthenticated"],
@@ -23,7 +23,8 @@ def get_service_status(request: Request, module_name: str = Query(...), version:
 
 @router.get("/list_service_status")
 def list_service_status(request: Request):
-    pass
+    statuses = get_all_dynamic_service_statuses(request)
+    return [statuses]
 
 
 @router.get("/status")

@@ -8,13 +8,16 @@ from configs.settings import Settings
 
 
 class K8sClients:
+    app_client: AppsV1Api
+    core_client: CoreV1Api
+    network_client: NetworkingV1Api
 
-    def __int__(
-            self,
-            settings: Settings,
-            k8s_core_client: Optional[CoreV1Api],
-            k8s_app_client: Optional[AppsV1Api],
-            k8s_network_client: Optional[NetworkingV1Api],
+    def __init__(
+        self,
+        settings: Settings,
+        k8s_core_client: Optional[CoreV1Api] = None,
+        k8s_app_client: Optional[AppsV1Api] = None,
+        k8s_network_client: Optional[NetworkingV1Api] = None,
     ):
         """
         Setup Kubernetes clients.
@@ -48,6 +51,6 @@ class K8sClients:
             k8s_app_client = AppsV1Api()
             k8s_network_client = NetworkingV1Api()
 
-        self.apps_client = k8s_app_client
+        self.app_client = k8s_app_client
         self.core_client = k8s_core_client
-        self.k8s_network_client = k8s_network_client
+        self.network_client = k8s_network_client

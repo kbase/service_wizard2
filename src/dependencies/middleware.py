@@ -7,8 +7,6 @@ from clients.CachedAuthClient import CachedAuthClient
 ALPHANUMERIC_PATTERN = r"^[a-zA-Z0-9]+$"
 
 
-
-
 async def authenticated_user(
     request: Request,
     authorization: str = Header(
@@ -18,7 +16,6 @@ async def authenticated_user(
         description="KBase auth token",
     ),
     kbase_session: str = Cookie(None, regex=ALPHANUMERIC_PATTERN),
-
 ):
     if not authorization and not kbase_session:
         raise HTTPException(
@@ -29,7 +26,7 @@ async def authenticated_user(
     # Check to see if the token is valid and throw an exception if it isn't,
     # but also throw a different exception if the auth service is down
     try:
-        ac = request.app.state.auth_client # type: CachedAuthClient
+        ac = request.app.state.auth_client  # type: CachedAuthClient
         ac.is_authorized(token=authorization if authorization else kbase_session)
 
     except HTTPException as e:
