@@ -1,9 +1,21 @@
 import logging
-from pprint import pprint
-from typing import List
+import re
+import time
 
 from fastapi import Request
 from kubernetes import client
+from kubernetes.client import (
+    V1Service,
+    V1ServiceSpec,
+    V1ServicePort,
+    V1Ingress,
+    V1IngressSpec,
+    V1HTTPIngressRuleValue,
+    V1HTTPIngressPath,
+    V1IngressBackend,
+    V1IngressRule,
+    ApiException,
+)
 
 from src.configs.settings import get_settings
 
@@ -14,6 +26,10 @@ def get_k8s_core_client(request: Request) -> client.CoreV1Api:
 
 def get_k8s_app_client(request: Request) -> client.AppsV1Api:
     return request.app.state.k8s_app_client
+
+
+def get_k8s_networking_client(request: Request) -> client.NetworkingV1Api:
+    return request.app.state.k8s_network_client
 
 
 def get_pods_in_namespace(
@@ -31,36 +47,6 @@ def get_pods_in_namespace(
     # "metadata.name,metadata.git_commit,metadata.kb_module_name,status.phase"
     pod_list = k8s_client.list_namespaced_pod(get_settings().namespace, field_selector=field_selector, label_selector=label_selector)
     return pod_list
-
-
-def get_all_pods(request: Request) -> List:
-    """
-    Retrieve information about all services based on the Kubernetes pods in the specified namespace.
-    :param request: The request object used to retrieve Kubernetes client and namespace information.
-    :return: List[ServiceInfo]: A list of ServiceInfo, each representing a service with its extracted information.
-    """
-    # TODO - Move "running" into a constant
-    pods = get_pods_in_namespace(k8s_client=get_k8s_core_client(request))
-    service_list: List = []
-    for pod in pods.items:
-        pod_health = "unknown"
-        for condition in pod.status.conditions:
-            if condition.type == "Ready":
-                pod_health = "healthy" if condition.status == "True" else "unhealthy"
-                break
-
-        git_commit = pod.metadata.annotations.get("git_commit") or ""
-        kb_module_name = pod.metadata.annotations.get("kb_module_name") or ""
-
-        pod_status = PodStatus.from_pod(
-            pod_name=pod.metadata.name,
-            pod_status=pod.status.phase,
-            pod_health=pod_health,
-            git_commit=git_commit,
-            kb_module_name=kb_module_name,
-        )
-        service_list.append(pod_status)
-    return service_list
 
 
 def v1_volume_mount_factory(mounts):
@@ -84,20 +70,95 @@ def v1_volume_mount_factory(mounts):
     return volumes, volume_mounts
 
 
-def create_and_launch_deployment(request, module_name, module_git_commit_hash, image, labels, annotations, env, mounts) -> client.V1LabelSelector:
-    # Specify the deployment metadata
-    deployment_name = f"{module_name}-{module_git_commit_hash}".lower()
+def _sanitize_deployment_name(module_name, module_git_commit_hash):
+    """
+    Create a deployment name based on the module name and git commit hash. But adhere to kubernetes api naming rules and be a valid DNS label
+    :param module_name:
+    :param module_git_commit_hash:
+    :return:
+    """
 
-    print("Labels are")
-    pprint(labels)
+    sanitized_module_name = re.sub(r"[^a-zA-Z0-9]", "-", module_name)
+    short_git_sha = module_git_commit_hash[:7]
+    epoch_seconds = int(time.time())
+    deployment_name = f"d-{sanitized_module_name}-{short_git_sha}-{epoch_seconds}".lower()
+    service_name = f"s-{sanitized_module_name}-{short_git_sha}-{epoch_seconds}".lower()
+
+    # If the deployment name is too long, shorten it
+    if len(deployment_name) > 63:
+        excess_length = len(deployment_name) - 63
+        deployment_name = f"d-{sanitized_module_name[:-excess_length]}-{short_git_sha}-{epoch_seconds}"
+        service_name = f"s-{sanitized_module_name[:-excess_length]}-{short_git_sha}-{epoch_seconds}"
+
+    return deployment_name, service_name
+
+    # TODO: Add a test for this function
+    # TODO: add documentation about maximum length of deployment name being 63 characters,
+    # Test the function with a very long module name and a git commit hash
+    # sanitize_deployment_name("My_Module_Name"*10, "7f6d03cf556b2a1e610fd70b68924a2f6700ae44")
+
+
+def create_clusterip_service(request, module_name, module_git_commit_hash, labels) -> client.V1Service:
+    core_v1_api = get_k8s_core_client(request)
+    deployment_name, service_name = _sanitize_deployment_name(module_name, module_git_commit_hash)
+
+    # Define the service
+    service = V1Service(
+        api_version="v1",
+        kind="Service",
+        metadata=client.V1ObjectMeta(
+            name=service_name,
+            labels=labels,
+        ),
+        spec=V1ServiceSpec(
+            selector=labels,
+            ports=[V1ServicePort(port=5000, target_port=5000)],
+            type="ClusterIP",
+        ),
+    )
+    return core_v1_api.create_namespaced_service(namespace=get_settings().namespace, body=service)
+
+
+def _ensure_ingress_exists(request):
+    # This ensures that the main service wizard ingress exists, and if it doesn't, creates it.
+    # This should only ever be called once, or if in case someone deletes the ingress for it
+    settings = request.settings
+    networking_v1_api = get_k8s_networking_client(request)
+    ingress_spec = V1IngressSpec(
+        rules=[V1IngressRule(host=settings.kbase_root_endpoint.replace("http://", "").replace("https://", ""), http=None)]  # no paths specified
+    )
+    ingress = V1Ingress(
+        api_version="networking.k8s.io/v1",
+        kind="Ingress",
+        metadata=client.V1ObjectMeta(
+            name="dynamic-services",
+            annotations={
+                "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+            },
+        ),
+        spec=ingress_spec,
+    )
+    try:
+        networking_v1_api.read_namespaced_ingress(name="dynamic-services", namespace=settings.namespace)
+    except ApiException as e:
+        if e.status == 404:
+            networking_v1_api.create_namespaced_ingress(namespace=settings.namespace, body=ingress)
+        else:
+            raise
+
+
+def update_ingress_to_point_to_service(request, deployment_name, module_name, git_commit_hash):
+    _ensure_ingress_exists(request)
+
+
+def create_and_launch_deployment(request, module_name, module_git_commit_hash, image, labels, annotations, env, mounts) -> client.V1LabelSelector:
+    deployment_name, service_name = _sanitize_deployment_name(module_name, module_git_commit_hash)
+
+    annotations["k8s_deployment_name"] = deployment_name
+    annotations["k8s_service_name"] = service_name
     metadata = client.V1ObjectMeta(name=deployment_name, labels=labels, annotations=annotations)
 
-    # Specify the container details
-    logging.info("Mounts are??????")
-    print("Mounts are??????")
     volumes, volume_mounts = v1_volume_mount_factory(mounts)
-    print("Mounts gotten??????")
-
     container = client.V1Container(
         name=deployment_name,
         image=image,
@@ -105,27 +166,17 @@ def create_and_launch_deployment(request, module_name, module_git_commit_hash, i
         volume_mounts=volume_mounts,
     )
 
-    # Specify the pod template
     template = client.V1PodTemplateSpec(metadata=metadata, spec=client.V1PodSpec(containers=[container], volumes=volumes))
-
-    # Specify the deployment spec
     selector = client.V1LabelSelector(
         match_labels={"us.kbase.module.module_name": module_name.lower(), "us.kbase.module.git_commit_hash": module_git_commit_hash}
     )
-
     spec = client.V1DeploymentSpec(replicas=1, template=template, selector=selector)
-
-    # Create the deployment object
     deployment = client.V1Deployment(api_version="apps/v1", kind="Deployment", metadata=metadata, spec=spec)
-
-    # Create the deployment
-    print(f"About to create deployment {deployment} in {get_settings().namespace}")
     get_k8s_app_client(request).create_namespaced_deployment(body=deployment, namespace=get_settings().namespace)
-    print("Done creating deployment")
     return selector
 
 
-def _get_deployment_status(request, label_selector_text) -> client.V1Deployment:
+def _get_deployment_status(request, label_selector_text) -> client.V1Deployment | None:
     apps_v1_api = get_k8s_app_client(request)
     deployment_statuses = apps_v1_api.list_namespaced_deployment(get_settings().namespace, label_selector=label_selector_text).items
     if len(deployment_statuses) > 1:

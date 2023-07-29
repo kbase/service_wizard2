@@ -1,20 +1,18 @@
 import json
 import logging
 import re
-import time
 import traceback
-
 from typing import Dict, Tuple
-from fastapi import Request, HTTPException
 
+from fastapi import HTTPException
 from fastapi import Request
 from kubernetes.client import ApiException
 
-from src.models.models import DynamicServiceStatus
 from src.configs.settings import Settings
-from src.dependencies.catalog_wrapper import get_module_version, list_service_volume_mounts, get_catalog_secure_params
-from src.dependencies.k8_wrapper import create_and_launch_deployment
+
+from src.dependencies.k8_wrapper import create_and_launch_deployment, create_clusterip_service, update_ingress_to_point_to_service
 from src.dependencies.status import get_service_status_with_retries
+from src.models.models import DynamicServiceStatus
 
 
 class ServiceAlreadyExistsException(HTTPException):
@@ -22,14 +20,21 @@ class ServiceAlreadyExistsException(HTTPException):
 
 
 def get_env(request, module_name, module_version) -> Dict[str, str]:
+    """
+    Get the environment variables for a module and set it up for the container to use.
+    :param request:
+    :param module_name:
+    :param module_version:
+    :return: A map of environment variables to be used by the container.
+    """
     settings = request.app.state.settings  # type: Settings
     environ_map = {
-        "KBASE_ENDPOINT": settings.kbase_endpoint,
-        "AUTH_SERVICE_URL": f"{settings.kbase_endpoint}/auth/api/legacy/KBase/Sessions/Login",
+        "KBASE_ENDPOINT": settings.kbase_services_endpoint,
+        "AUTH_SERVICE_URL": settings.auth_legacy_url,
         "AUTH_SERVICE_URL_ALLOW_INSECURE": "false",
     }
 
-    secure_param_list = get_catalog_secure_params(request, module_name, module_version)
+    secure_param_list = request.state.cc(request, module_name, module_version)
 
     for secure_param in secure_param_list:
         param_name = secure_param["param_name"]
@@ -57,7 +62,15 @@ Using Pods directly gives you fine-grained control over the individual container
 """
 
 
-def _setup_metdata(module_name, git_commit_hash, module_version, catalog_version, catalog_git_url) -> Tuple[Dict, Dict]:
+def _setup_metdata(module_name, requested_module_version, git_commit_hash, version, git_url) -> Tuple[Dict, Dict]:
+    """
+    :param module_name: Module name that comes from the web request
+    :param requested_module_version: Module version that comes from the web request
+    :param git_commit_hash: Hash that comes from KBase Catalog
+    :param version: Module Version that comes from KBase Catalog
+    :param git_url: Git URL from KBase Catalog
+    :return: labels, annotations
+    """
     # Warning, if any of these don't follow k8 regex filter conventions, the deployment will fail
     labels = {
         "us.kbase.dynamicservice": "true",
@@ -67,43 +80,31 @@ def _setup_metdata(module_name, git_commit_hash, module_version, catalog_version
     annotations = {
         "git_commit_hash": git_commit_hash,
         "module_name": module_name,
-        "module_version_from_request": module_version,
-        "us.kbase.catalog.moduleversion": catalog_version,
-        "description": re.sub(r"^(https?://)", "", catalog_git_url),
+        "module_version_from_request": requested_module_version,
+        "us.kbase.catalog.moduleversion": version,
+        "description": re.sub(r"^(https?://)", "", git_url),
+        "k8s_deployment_name": "to_be_overwritten",
+        "k8s_service_name": "to_be_overwritten",
     }
     return labels, annotations
-    # labels = {
-    #     "us.kbase.dynamicservice": "true",
-    #     "us.kbase.module.git_commit_hash": catalog_module_version["git_commit_hash"],
-    #     "us.kbase.module.module_name": module_name.lower(),
-    # }
-    #
-    # annotations = {
-    #     "git_commit_hash": catalog_module_version["git_commit_hash"],
-    #     "module_name": module_name,
-    #     "module_version_from_request": module_version,
-    #     "us.kbase.catalog.moduleversion": catalog_module_version["version"],
-    #     "description": re.sub(r"^(https?://)", "", catalog_module_version["git_url"]),
-    # }
 
 
-def start_deployment(request: Request, module_name, module_version) -> DynamicServiceStatus:
-    catalog_module_version = get_module_version(request, module_name, module_version, require_dynamic_service=True)
-    labels, annotations = _setup_metdata(
-        module_name=module_name,
-        git_commit_hash=catalog_module_version["git_commit_hash"],
-        module_version=module_version,
-        catalog_version=catalog_module_version["version"],
-        catalog_git_url=catalog_module_version["git_url"],
-    )
-    env = get_env(request, module_name, module_version)
-    mounts = get_volume_mounts(request, module_name, module_version)
+def _create_and_launch_deployment_helper(
+    annotations: Dict,
+    env: Dict,
+    image: str,
+    labels: Dict,
+    module_git_commit_hash: str,
+    module_name: str,
+    mounts: list[str],
+    request: Request,
+):
     try:
         create_and_launch_deployment(
             request=request,
             module_name=module_name,
-            module_git_commit_hash=catalog_module_version["git_commit_hash"],
-            image=catalog_module_version["docker_img_name"],
+            module_git_commit_hash=module_git_commit_hash,
+            image=image,
             labels=labels,
             annotations=annotations,
             env=env,
@@ -111,15 +112,58 @@ def start_deployment(request: Request, module_name, module_version) -> DynamicSe
         )
     except ApiException as e:
         if e.status == 409:  # AlreadyExistsError
-            error_message = (
-                f"The deployment with name '{module_name}' and version '{module_version}' already exists. "
-                + f"Commit:{catalog_module_version['git_commit_hash']} Version:{catalog_module_version['version']} "
-                + f"Kubernetes ApiException: {json.dumps(e.body, indent=2, ensure_ascii=False) if e.body else str(e)}".replace("\\", "")
-            )
-            logging.warning(error_message)
+            logging.warning(e.body)
         else:
             detail = traceback.format_exc()
             raise HTTPException(status_code=e.status, detail=detail) from e
-    # TODO Create service here! Or add it into above function?
+
+
+def _create_cluster_ip_service_helper(request, module_name, catalog_git_commit_hash, labels):
+    try:
+        create_clusterip_service(request, module_name, catalog_git_commit_hash, labels)
+    except ApiException as e:
+        if e.status == 409:
+            logging.warning("Service already exists, skipping creation")
+        else:
+            detail = traceback.format_exc()
+            raise HTTPException(status_code=e.status, detail=detail) from e
+
+
+def _update_ingress_for_service(request, module_name, module_version, module_git_commit_hash):
+    try:
+        update_ingress_to_point_to_service(request, module_name, module_version, module_git_commit_hash)
+    except ApiException as e:
+        if e.status == 409:
+            logging.warning("Ingress already exists, skipping creation")
+        else:
+            detail = traceback.format_exc()
+            raise HTTPException(status_code=e.status, detail=detail) from e
+
+
+def start_deployment(request: Request, module_name, module_version) -> DynamicServiceStatus:
+    module_info = get_module_info(request, module_name, module_version, require_dynamic_service=True)
+    labels, annotations = _setup_metdata(
+        module_name=module_name,
+        requested_module_version=module_version,
+        git_commit_hash=module_info["git_commit_hash"],
+        version=module_info["version"],
+        git_url=module_info["git_url"],
+    )
+    mounts = get_volume_mounts(request, module_name, module_version)
+    env = get_env(request, module_name, module_version)
+
+    _create_and_launch_deployment_helper(
+        annotations=annotations,
+        env=env,
+        image=module_info["docker_img_name"],
+        labels=labels,
+        module_git_commit_hash=module_info["git_commit_hash"],
+        module_name=module_name,
+        mounts=mounts,
+        request=request,
+    )
+
+    _create_cluster_ip_service_helper(request, module_name, module_info["git_commit_hash"], labels)
+    _update_ingress_for_service(request, module_name, module_info["git_commit_hash"], labels)
 
     return get_service_status_with_retries(request, module_name, module_version)

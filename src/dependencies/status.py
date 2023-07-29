@@ -7,8 +7,8 @@ from kubernetes import client
 
 from src.configs.settings import get_settings
 from src.models.models import DynamicServiceStatus, CatalogModuleInfo
-from src.dependencies.catalog_wrapper import get_hash_to_name_mapping, get_module_version
-from src.dependencies.k8_wrapper import get_all_pods, get_k8s_deployment_status_from_label, query_k8s_deployment_status, get_k8s_deployments
+from src.clients.CachedCatalogClient import CachedCatalogClient
+from src.dependencies.k8_wrapper import get_k8s_deployment_status_from_label, query_k8s_deployment_status, get_k8s_deployments
 import logging
 
 
@@ -23,7 +23,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
     """
     try:
         logging.info(f"Looking up module_name{module_name} and git_commit{git_commit}")
-        mv = get_module_version(request, module_name, git_commit)
+        mv = get_module_info(request, module_name, git_commit)
     except Exception as e:
         print(f"Looking up module_name{module_name} and git_commit{git_commit} failed with error {e}")
         return CatalogModuleInfo(
@@ -37,7 +37,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
 
     module_info = CatalogModuleInfo(
         # TODO GET URL FROM THE SERVICE INSTEAD OF GUESSING IT?
-        url=f"{get_settings().external_ds_url}/{mv['git_commit_hash']}.{mv['module_name']}.",
+        url=f"{get_settings().external_ds_url}/{mv['git_commit_hash']}.{mv['module_name']}",
         version=mv["version"],
         module_name=mv["module_name"],
         release_tags=mv["release_tags"],
@@ -72,7 +72,7 @@ def get_service_status_with_retries(request, module_name, version, retries=5) ->
     # if there is some delay in starting up, then give it a couple seconds
     for _ in range(retries):
         try:
-            status = get_service_status_helper(request, module_name, version)
+            status = get_dynamic_service_status_helper(request, module_name, version)
             if status.up == 1:
                 return status
         except Exception:
@@ -82,10 +82,11 @@ def get_service_status_with_retries(request, module_name, version, retries=5) ->
     raise Exception("Failed to get service status after maximum retries")
 
 
-def get_service_status_helper(request, module_name, version) -> DynamicServiceStatus:
+def get_dynamic_service_status_helper(request, module_name, version) -> DynamicServiceStatus:
     """
     Retrieve the status of a service based on the module version and git commit hash.
 
+    :param request:
     :param module_version: The module version.
     :param git_commit_hash: The git commit hash.
     :return: The service status.
@@ -196,14 +197,3 @@ def list_service_status_helper(request: Request) -> List[DynamicServiceStatus]:
         )
 
     return dynamic_service_statuses
-
-    # Not sure if this is needed right now, need to do further resting
-    ##            except:
-    # this will occur if the module version is not registered with the catalog, or if the module
-    # was not marked as a service, or if something was started in Rancher directly and pulled
-    # # from somewhere else, or an old version of the catalog was used to start this service
-    # es["url"] = "https://{0}:{1}/dynserv/{3}.{2}".format(self.SVC_HOSTNAME, self.NGINX_PORT, rs[0], rs[1])
-    # es["version"] = ""
-    # es["release_tags"] = []
-    # es["git_commit_hash"] = ""
-    # es["module_name"] = "!" + rs[0] + ""

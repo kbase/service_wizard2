@@ -3,7 +3,7 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Request, Query, HTTPException
 
-from src.dependencies.authentication import authenticated_user
+from src.dependencies.middleware import authenticated_user
 from src.dependencies.start import start_deployment
 from src.models.models import ServiceLogWebSocket
 
@@ -16,6 +16,8 @@ router = APIRouter(
         409: {"description": "AlreadyExistsError"},
     },
 )
+
+
 
 from src.models.models import DynamicServiceStatus
 

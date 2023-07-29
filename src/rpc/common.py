@@ -1,6 +1,6 @@
 from fastapi import HTTPException, Request
 
-from src.dependencies.authentication import authenticated_user
+from src.dependencies.middleware import authenticated_user
 from src.rpc.error_responses import (
     no_authenticated_headers_passed,
     token_validation_failed,

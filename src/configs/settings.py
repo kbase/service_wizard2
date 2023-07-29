@@ -11,12 +11,14 @@ class EnvironmentVariableError(Exception):
 class Settings:
     admin_roles: list[str]
     auth_service_url: str
+    auth_legacy_url: str
     catalog_admin_token: str
     catalog_url: str
     external_ds_url: str
     external_sw_url: str
     git_url: str
-    kbase_endpoint: str
+    kbase_root_endpoint: str
+    kbase_services_endpoint: str
     kubeconfig: str
     namespace: str
     root_path: str
@@ -29,12 +31,14 @@ def get_settings() -> Settings:
     required_variables = [
         "NAMESPACE",
         "AUTH_SERVICE_URL",
+        "AUTH_LEGACY_URL",
         "CATALOG_URL",
         "CATALOG_ADMIN_TOKEN",
         "EXTERNAL_SW_URL",
         "EXTERNAL_DS_URL",
         "ROOT_PATH",
-        "KBASE_ENDPOINT",
+        "KBASE_ROOT_ENDPOINT",
+        "KBASE_SERVICES_ENDPOINT",
     ]
 
     # Treat all variables as strings
@@ -66,12 +70,14 @@ def get_settings() -> Settings:
     return Settings(
         admin_roles=admin_roles,
         auth_service_url=os.environ.get("AUTH_SERVICE_URL"),
+        auth_legacy_url=os.environ.get("AUTH_LEGACY_URL"),
         catalog_admin_token=os.environ.get("CATALOG_ADMIN_TOKEN"),
         catalog_url=os.environ.get("CATALOG_URL"),
         external_ds_url=os.environ.get("EXTERNAL_DS_URL"),
         external_sw_url=os.environ.get("EXTERNAL_SW_URL"),
         git_url="https://github.com/kbase/service_wizard2",
         kbase_endpoint=os.environ.get("KBASE_ENDPOINT"),
+        kbase_services_endpoint=os.environ.get("KBASE_SERVICES_ENDPOINT"),
         kubeconfig=os.environ.get("KUBECONFIG"),
         namespace=os.environ.get("NAMESPACE"),
         root_path=os.environ.get("ROOT_PATH"),

@@ -1,48 +1,53 @@
 import logging
 import os
+from typing import Tuple, Optional
 
 import sentry_sdk
 from cacheout import LRUCache
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends
-from kubernetes import client, config
+from kubernetes import config
+from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api
 from prometheus_fastapi_instrumentator import Instrumentator
+from starlette.datastructures import State
 
-from src.configs.settings import get_settings
+from clients.CachedAuthClient import CachedAuthClient
+from src.configs.settings import get_settings, Settings
 from src.routes.authenticated_routes import router as sw2_authenticated_router
 from src.routes.unauthenticated_routes import router as sw2_unauthenticated_router
 from src.routes.rpc import router as sw2_rpc_router
-from src.clients.CatalogClient import Catalog
+from src.clients.CachedCatalogClient import CachedCatalogClient
+from src.clients.KubernetesClients import K8sClients
+from fastapi.middleware.gzip import GZipMiddleware
+
+
 
 
 def create_app(
-    token_cache=LRUCache(maxsize=100, ttl=300),
-    catalog_cache=LRUCache(maxsize=100, ttl=300),
-    catalog_client=None,
-    k8s_core_client=None,
-    k8s_app_client=None,
-):
+        token_cache: LRUCache = LRUCache(maxsize=100, ttl=300),
+        catalog_cache: LRUCache = LRUCache(maxsize=100, ttl=300),
+        catalog_client: Optional[CachedCatalogClient] = None,
+        auth_client: Optional[CachedAuthClient] = None,
+        k8s_clients: K8sClients = None,
+        settings: Optional[Settings] = None,
+) -> FastAPI:
+    """
+    Create the app with the required dependencies.
+
+    Parameters:
+        token_cache (LRUCache): LRUCache for tokens.
+        catalog_cache (LRUCache): LRUCache for catalog data.
+        catalog_client (Optional[Catalog]): Optional existing Catalog client.
+        k8s_core_client (Optional[client.CoreV1Api]): Optional existing CoreV1Api client.
+        k8s_app_client (Optional[client.AppsV1Api]): Optional existing AppsV1Api client.
+        k8s_network_client (Optional[client.NetworkingV1Api]): Optional existing NetworkingV1Api client.
+        settings (Optional[Settings]): Optional settings object containing configuration details.
+
+    Returns:
+         Fastapi app and clients saved it its state attribute
+    """
     logging.basicConfig(level=logging.DEBUG)
-    load_dotenv("/Users/bsadkhin/modules/kbase/service_wizard2/.env")  # Load environment variables from .env file
-    settings = get_settings()
-    if catalog_client is None:
-        catalog_client = Catalog(url=settings.catalog_url, token=settings.catalog_admin_token)
-
-    # Don't allow potentially different clients to be passed in
-    if (k8s_core_client is not None) ^ (k8s_app_client is not None):
-        raise ValueError("Both k8s_core_client and k8s_app_client should either be both None or both filled in.")
-
-    if k8s_core_client is None:
-        if settings.use_incluster_config is True:
-            # Use a service account token if running in a k8s cluster
-            logging.info("Loading in-cluster k8s config")
-            config.load_incluster_config()
-        else:
-            # Use the kubeconfig file, useful for local development and testing
-            logging.info(f"Loading k8s config from {settings.kubeconfig}")
-            config.load_kube_config(config_file=settings.kubeconfig)
-        k8s_core_client = client.CoreV1Api()
-        k8s_app_client = client.AppsV1Api()
+    load_dotenv(os.environ.get("DOTENV_FILE_LOCATION", ".env"))
 
     if os.environ.get("SENTRY_DSN"):
         # Monkeypatch here
@@ -53,18 +58,23 @@ def create_app(
             http_proxy=os.environ.get("HTTP_PROXY"),
         )
 
-    app = FastAPI(root_path=settings.root_path)
+    app = FastAPI(root_path=settings.root_path) # type: FastAPI
 
-    app.state.settings = settings
-    app.state.global_token_cache = token_cache
-    app.state.catalog_cache = catalog_cache
-    app.state.catalog_client = catalog_client
-    app.state.k8s_core_client = k8s_core_client
-    app.state.k8s_app_client = k8s_app_client
+    # TODO Combine the cache and catalog client together into a class called CatalogClient
+    # Change the client to be that, and remove the caches from the state object
 
+    # Settings
+    app.state.settings = settings if settings else get_settings()
+    app.state.cc = catalog_client or CachedCatalogClient(app.state.settings)
+    app.state.k8s_clients = k8s_clients if k8s_clients else K8sClients(settings=app.state.settings)
+    app.state.auth_client = auth_client if auth_client else CachedAuthClient(settings=app.state.settings)
     app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
     app.include_router(sw2_rpc_router)
+
+    # Middleware Do we need this?
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 
     Instrumentator().instrument(app).expose(app)
 
