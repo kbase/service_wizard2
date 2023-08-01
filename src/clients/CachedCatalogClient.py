@@ -6,7 +6,7 @@ from clients.CatalogClient import Catalog
 from configs.settings import Settings, get_settings
 
 
-def get_module_name_hash(module_name=None):
+def get_module_name_hash(module_name: str = None):
     """
     Calculate the MD5 hash of a module name and return the first 20 characters of the hexadecimal digest.
     This is not a valid DNS name as it doesn't guarantee to start or end with an alphanumeric character.
@@ -28,8 +28,14 @@ class CachedCatalogClient:
         settings = get_settings() if not settings else settings
         self.cc = Catalog(url=settings.catalog_url, token=settings.catalog_admin_token) if not catalog else catalog
 
-    def get_module_info(self, module_name, version, require_dynamic_service=False) -> dict:
-        print("OK")
+    def get_module_info(self, module_name: str, version: str, require_dynamic_service: bool = False) -> dict:
+        """
+        Retrieve the module info from the KBase Catalog
+        :param module_name:     The name of the module.
+        :param version:       The version of the module.
+        :param require_dynamic_service:  If True, the module must be marked as a dynamic service.
+        :return: The module info from the KBase Catalog
+        """
         key = module_name + "-" + version
         module_info = self.module_info_cache.get(key=key, default=None)
         if not module_info:
@@ -44,10 +50,15 @@ class CachedCatalogClient:
                 raise ValueError(
                     "Specified module is not marked as a dynamic service. (" + module_info["module_name"] + "-" + module_info["git_commit_hash"] + ")"
                 )
-        print("DONE")
         return module_info
 
-    def list_service_volume_mounts(self, module_name, version):
+    def list_service_volume_mounts(self, module_name: str, version: str) -> list[dict]:
+        """
+        Retrieve the volume mounts for a service from the catalog.
+        :param module_name: The name of the module.
+        :param version: The version of the module.
+        :return: A list of volume mounts for the service.
+        """
         key = module_name + "-" + version
         mounts = self.module_volume_mount_cache.get(key=key, default=None)
         if not mounts:
@@ -60,12 +71,12 @@ class CachedCatalogClient:
             self.module_volume_mount_cache.set(key=key, value=mounts)
         return mounts
 
-    def get_catalog_secure_params(self, module_name, version):
+    def get_secure_params(self, module_name: str, version: str):
         """
         Retrieve the secure config parameters for a module from the catalog.
         :param module_name: The name of the module.
         :param version: The version of the module.
-        :return: 
+        :return: A dictionary of secure config parameters for the module.
         """
         key = module_name + "-" + version
         secure_config_params = self.secure_config_cache.get(key=key, default=None)
@@ -89,12 +100,8 @@ class CachedCatalogClient:
         if not module_hash_mapppings:
             basic_module_info = self.cc.list_basic_module_info({"include_released": 1, "include_unreleased": 1})
             for m in basic_module_info:
-                # Check if the module is a dynamic service
                 if "dynamic_service" not in m or m["dynamic_service"] != 1:
                     continue
                 module_hash_mapppings[get_module_name_hash(m["module_name"])] = m["module_name"]
-
             self.module_hash_mapppings_cache.set(key=key, value=module_hash_mapppings)
-
-        print("About to return", module_hash_mapppings)
         return module_hash_mapppings

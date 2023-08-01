@@ -1,6 +1,6 @@
 from fastapi import HTTPException, Request
 
-from src.dependencies.middleware import authenticated_user
+from src.dependencies.middleware import is_authorized
 from src.rpc.error_responses import (
     no_authenticated_headers_passed,
     token_validation_failed,
@@ -40,7 +40,7 @@ def validate_rpc_response(response: JSONRPCResponse):
     return response
 
 
-def rpc_auth(request: Request, jrpc_id):
+async def rpc_auth(request: Request, jrpc_id: str):
     # Extract the Authorization header and the kbase_session cookie
     authorization = request.headers.get("Authorization")
     kbase_session = request.cookies.get("kbase_session")
@@ -48,12 +48,12 @@ def rpc_auth(request: Request, jrpc_id):
     # If no authorization provided, raise exception
 
     if not authorization and not kbase_session:
-        return json_rpc_response_to_exception(no_authenticated_headers_passed(jrpc_id))
+        raise json_rpc_response_to_exception(no_authenticated_headers_passed(jrpc_id))
 
     # Call the authenticated_user function
     try:
-        authenticated_user(authorization, kbase_session, request.app.state.global_token_cache)
-    except HTTPException as e:
-        return e
-    except Exception:
-        return json_rpc_response_to_exception(token_validation_failed(jrpc_id))
+        authorized = await is_authorized(request=request, kbase_session=kbase_session, authorization=authorization)
+        if not authorized:
+            return json_rpc_response_to_exception(token_validation_failed(jrpc_id))
+    except:
+        raise

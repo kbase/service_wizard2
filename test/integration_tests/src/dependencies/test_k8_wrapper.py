@@ -15,7 +15,7 @@ import requests_mock
 from src.clients.CatalogClient import Catalog
 from src.configs.settings import get_settings
 from src.factory import create_app
-from dependencies.authentication import authenticated_user
+from dependencies.middleware import is_authorized
 
 from dotenv import load_dotenv
 
@@ -83,7 +83,7 @@ def mock_catalog_client():
         "git_url": "https://github.com/kbaseapps/NarrativeService",
         "release_tags": ["release", "beta", "dev"],
     }
-    cc.get_module_version.return_value = cc_result
+    cc.get_module_info.return_value = cc_result
     cc.get_secure_config_params.return_value = [
         {
             "module_name": "NarrativeService",
@@ -144,7 +144,7 @@ def app(kind_cluster, mock_catalog_client, v1_core_client, apps_v1_client):
         k8s_app_client=apps_v1_client,
         k8s_core_client=v1_core_client,
     )
-    app.dependency_overrides[authenticated_user] = lambda: ...
+    app.dependency_overrides[is_authorized] = lambda: ...
     return app
 
 

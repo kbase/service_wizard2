@@ -1,6 +1,7 @@
 from typing import Callable
 
 from fastapi import Request, APIRouter, HTTPException
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 
 from src.rpc import authenticated_routes, unauthenticated_routes
@@ -19,9 +20,13 @@ router = APIRouter(
 unauthenticated_routes = {
     "ServiceWizard.list_service_status": unauthenticated_routes.list_service_status,
     "ServiceWizard.status": unauthenticated_routes.status,
+    "ServiceWizard.version": unauthenticated_routes.version,
+    "ServiceWizard.get_service_status_without_restart": unauthenticated_routes.get_service_status_without_restart,
+
 }
 authenticated_routes = {
     "ServiceWizard.start": authenticated_routes.start,
+    "ServiceWizard.get_service_status": authenticated_routes.start,
 }
 
 # Combine the dictionaries
@@ -35,18 +40,20 @@ async def json_rpc(request: Request) -> Response | HTTPException | JSONRPCRespon
     try:
         method, params, jrpc_id = await validate_rpc_request(request)
     except Exception as e:
-        return json_exception(e)
+        return JSONResponse(content=jsonable_encoder(json_exception(e)), status_code=500)
 
     request_function: Callable = known_methods.get(method)
     if request_function is None:
         return method_not_found(method=method, jrpc_id=jrpc_id)
 
-    # If the request function is in the authenticated routes, then we need to check the token and return any error messages
-    # That may arise during authentication
     if request_function in authenticated_routes.values():
-        authorized = rpc_auth(request, jrpc_id)
+        authorized = await rpc_auth(request, jrpc_id)
+        # print("Authorized is", authorized.body)
         if isinstance(authorized, Response):
             return authorized
 
-    response = await request_function(request, params, jrpc_id)
-    return validate_rpc_response(response)
+
+    valid_response = jsonable_encoder(await request_function(request, params, jrpc_id))  # type:JSONRPCResponse
+    if 'error' in valid_response:
+        return JSONResponse(content=valid_response, status_code=500)
+    return JSONResponse(content=valid_response, status_code=200)

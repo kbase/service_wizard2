@@ -1,4 +1,5 @@
 from functools import cached_property
+from pprint import pprint
 
 import requests
 from cacheout import LRUCache
@@ -30,16 +31,17 @@ class CachedAuthClient:
         self.auth_url = self.settings.auth_service_url
         self.admin_roles = self.settings.admin_roles
 
-    def is_authorized(self, token) -> bool:
+    def is_authorized(self, token: str) -> bool:
         """
         A token is authorized if it is valid
         :param token:
         :return: True if the token is valid, False otherwise
         :raises: HTTPException if the token is invalid or the auth service is down
         """
+        print(f"roles for {token}", self.get_user_auth_roles(token))
         return bool(self.get_user_auth_roles(token) is not None)
 
-    def is_admin(self, token) -> bool:
+    def is_admin(self, token: str) -> bool:
         """
         A token is authorized if is valid and the user has an admin role
         :return: True if the token is valid, False otherwise
@@ -47,7 +49,7 @@ class CachedAuthClient:
         """
         return self.get_user_auth_roles(token).is_admin
 
-    def get_user_auth_roles(self, token) -> UserAuthRoles:
+    def get_user_auth_roles(self, token: str) -> UserAuthRoles:
         """
         Get the user auth roles for the given token. If the token is not cached, it will be validated and cached.
         :param token:  The token to get the user auth roles for
@@ -57,11 +59,11 @@ class CachedAuthClient:
         key = token
         user_auth_roles = self.valid_tokens.get(key=key, default=None)
         if not user_auth_roles:
-            token_info = self._validate_token(token)
-            self.valid_tokens.set(key=token, value=token_info)
+            user_auth_roles = self._validate_token(token)
+            self.valid_tokens.set(key=token, value=user_auth_roles)
         return user_auth_roles
 
-    def _validate_token(self, token) -> UserAuthRoles:
+    def _validate_token(self, token: str) -> UserAuthRoles:
         """
         Will either return a UserAuthRoles object or throw an exception because the token is invalid, expired,
         or the auth service is down or the auth URL is incorrect
@@ -73,7 +75,7 @@ class CachedAuthClient:
         username, roles = self.validate_and_get_username_roles(token)
         return UserAuthRoles(username=username, user_roles=roles, admin_roles=self.admin_roles)
 
-    def validate_and_get_username_roles(self, token):
+    def validate_and_get_username_roles(self, token: str) -> tuple[str, list[str]]:
         """
         This calls out the auth service to validate the token and get the username and auth roles
         :param token: The token to validate

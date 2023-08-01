@@ -22,6 +22,27 @@ def method_not_found(method, jrpc_id) -> JSONRPCResponse:
 def json_exception(exception: Exception) -> JSONRPCResponse:
     return JSONRPCResponse(id=None, error=ErrorResponse(message=f"{exception}", code=-32700, name="No JSON object could be decoded", error=None))
 
+def not_enough_params(method, jrpc_id):
+    return JSONRPCResponse(
+        id=jrpc_id,
+        error=ErrorResponse(
+            message=f"Not enough params passed to method {method}",
+            code=-32602,
+            name="Invalid params",
+            error=None,
+        ),
+    )
+
+def invalid_params(method, jrpc_id):
+    return JSONRPCResponse(
+        id=jrpc_id,
+        error=ErrorResponse(
+            message=f"Invalid params passed method {method}, see the spec for more details",
+            code=-32602,
+            name="Invalid params",
+            error=None,
+        ),
+    )
 
 def no_authenticated_headers_passed(jrpc_id):
     return JSONRPCResponse(

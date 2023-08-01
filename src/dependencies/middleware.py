@@ -7,7 +7,7 @@ from clients.CachedAuthClient import CachedAuthClient
 ALPHANUMERIC_PATTERN = r"^[a-zA-Z0-9]+$"
 
 
-async def authenticated_user(
+async def is_authorized(
     request: Request,
     authorization: str = Header(
         None,
@@ -27,8 +27,8 @@ async def authenticated_user(
     # but also throw a different exception if the auth service is down
     try:
         ac = request.app.state.auth_client  # type: CachedAuthClient
-        ac.is_authorized(token=authorization if authorization else kbase_session)
-
+        print("About to check", authorization, kbase_session)
+        return ac.is_authorized(token=authorization if authorization else kbase_session)
     except HTTPException as e:
         if e.status_code == 401:
             raise e

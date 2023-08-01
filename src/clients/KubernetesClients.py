@@ -1,12 +1,8 @@
 import logging
 from typing import Optional
 
-from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api
 from kubernetes import config
-
-from configs.settings import Settings
-
-
+from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api
 class K8sClients:
     app_client: AppsV1Api
     core_client: CoreV1Api
@@ -14,7 +10,7 @@ class K8sClients:
 
     def __init__(
         self,
-        settings: Settings,
+        settings: 'Settings',
         k8s_core_client: Optional[CoreV1Api] = None,
         k8s_app_client: Optional[AppsV1Api] = None,
         k8s_network_client: Optional[NetworkingV1Api] = None,
@@ -24,9 +20,9 @@ class K8sClients:
 
         Parameters:
             settings (Settings): The settings object containing configuration details.
-            k8s_core_client (Optional[client.CoreV1Api]): Optional existing CoreV1Api client.
-            k8s_app_client (Optional[client.AppsV1Api]): Optional existing AppsV1Api client.
-            k8s_network_client (Optional[client.NetworkingV1Api]): Optional existing NetworkingV1Api client.
+            k8s_core_client (Optional[client.CoreV1Api]): Optional preconfigured CoreV1Api client.
+            k8s_app_client (Optional[client.AppsV1Api]): Optional preconfigured AppsV1Api client.
+            k8s_network_client (Optional[client.NetworkingV1Api]): Optional preconfigured NetworkingV1Api client.
 
         Returns:
             Tuple[client.CoreV1Api, client.AppsV1Api, client.NetworkingV1Api]: The Kubernetes clients.

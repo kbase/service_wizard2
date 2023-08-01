@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Query
 
 from src.configs.settings import Settings
-from src.dependencies.status import get_dynamic_service_status_helper, get_all_dynamic_service_statuses
+from src.dependencies.status import get_dynamic_service_status_helper, get_all_dynamic_service_statuses, get_service_status_with_retries
 
 router = APIRouter(
     tags=["unauthenticated"],
@@ -18,11 +18,16 @@ def get_service_status(request: Request, module_name: str = Query(...), version:
     :param version: The version of the service module, which can be either: git commit, semantic version, or release tag
     :return:
     """
-    return get_dynamic_service_status_helper(request, module_name, version)
+    return get_service_status_with_retries(request, module_name, version)
 
 
 @router.get("/list_service_status")
 def list_service_status(request: Request):
+    """
+    Get all service statuses, this function doesn't take any parameters
+    :param request: The request object
+    :return: A list of all service statuses
+    """
     statuses = get_all_dynamic_service_statuses(request)
     return [statuses]
 

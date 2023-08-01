@@ -3,13 +3,13 @@ from typing import Union
 
 from fastapi import APIRouter, Depends, Request, Query, HTTPException
 
-from src.dependencies.middleware import authenticated_user
+from src.dependencies.middleware import is_authorized
 from src.dependencies.start import start_deployment
 from src.models.models import ServiceLogWebSocket
 
 router = APIRouter(
     tags=["authenticated", "logs"],
-    dependencies=[Depends(authenticated_user)],
+    dependencies=[Depends(is_authorized)],
     responses={
         404: {"description": "Not found"},
         500: {"description": "Internal server error"},

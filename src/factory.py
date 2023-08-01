@@ -22,8 +22,6 @@ from fastapi.middleware.gzip import GZipMiddleware
 
 
 def create_app(
-    token_cache: LRUCache = LRUCache(maxsize=100, ttl=300),
-    catalog_cache: LRUCache = LRUCache(maxsize=100, ttl=300),
     catalog_client: Optional[CachedCatalogClient] = None,
     auth_client: Optional[CachedAuthClient] = None,
     k8s_clients: K8sClients = None,

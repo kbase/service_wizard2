@@ -1,7 +1,7 @@
 import logging
 import re
 import time
-from src.configs.settings import get_settings
+
 from fastapi import Request
 from kubernetes import client
 from kubernetes.client import (
@@ -10,15 +10,14 @@ from kubernetes.client import (
     V1ServicePort,
     V1Ingress,
     V1IngressSpec,
-    V1HTTPIngressRuleValue,
-    V1HTTPIngressPath,
-    V1IngressBackend,
     V1IngressRule,
     ApiException,
     CoreV1Api,
     AppsV1Api,
-    NetworkingV1Api,
+    NetworkingV1Api, V1HTTPIngressRuleValue, V1HTTPIngressPath, V1IngressBackend,
 )
+
+from src.configs.settings import get_settings
 
 
 def get_k8s_core_client(request: Request) -> CoreV1Api:
@@ -81,15 +80,15 @@ def _sanitize_deployment_name(module_name, module_git_commit_hash):
 
     sanitized_module_name = re.sub(r"[^a-zA-Z0-9]", "-", module_name)
     short_git_sha = module_git_commit_hash[:7]
-    epoch_seconds = int(time.time())
-    deployment_name = f"d-{sanitized_module_name}-{short_git_sha}-{epoch_seconds}".lower()
-    service_name = f"s-{sanitized_module_name}-{short_git_sha}-{epoch_seconds}".lower()
+
+    deployment_name = f"d-{sanitized_module_name}-{short_git_sha}-d".lower()
+    service_name = f"s-{sanitized_module_name}-{short_git_sha}-s".lower()
 
     # If the deployment name is too long, shorten it
     if len(deployment_name) > 63:
         excess_length = len(deployment_name) - 63
-        deployment_name = f"d-{sanitized_module_name[:-excess_length]}-{short_git_sha}-{epoch_seconds}"
-        service_name = f"s-{sanitized_module_name[:-excess_length]}-{short_git_sha}-{epoch_seconds}"
+        deployment_name = f"d-{sanitized_module_name[:-excess_length]}-{short_git_sha}-d"
+        service_name = f"s-{sanitized_module_name[:-excess_length]}-{short_git_sha}-s"
 
     return deployment_name, service_name
 
@@ -123,10 +122,10 @@ def create_clusterip_service(request, module_name, module_git_commit_hash, label
 def _ensure_ingress_exists(request):
     # This ensures that the main service wizard ingress exists, and if it doesn't, creates it.
     # This should only ever be called once, or if in case someone deletes the ingress for it
-    settings = request.settings
+    settings = request.app.state.settings
     networking_v1_api = get_k8s_networking_client(request)
     ingress_spec = V1IngressSpec(
-        rules=[V1IngressRule(host=settings.kbase_root_endpoint.replace("http://", "").replace("https://", ""), http=None)]  # no paths specified
+        rules=[V1IngressRule(host=settings.kbase_root_endpoint.replace("https://", "").replace("https://", ""), http=None)]  # no paths specified
     )
     ingress = V1Ingress(
         api_version="networking.k8s.io/v1",
@@ -140,16 +139,57 @@ def _ensure_ingress_exists(request):
         spec=ingress_spec,
     )
     try:
-        networking_v1_api.read_namespaced_ingress(name="dynamic-services", namespace=settings.namespace)
+        return networking_v1_api.read_namespaced_ingress(name="dynamic-services", namespace=settings.namespace)
     except ApiException as e:
         if e.status == 404:
-            networking_v1_api.create_namespaced_ingress(namespace=settings.namespace, body=ingress)
+            return networking_v1_api.create_namespaced_ingress(namespace=settings.namespace, body=ingress)
         else:
             raise
 
 
-def update_ingress_to_point_to_service(request, deployment_name, module_name, git_commit_hash):
-    _ensure_ingress_exists(request)
+def _update_ingress_with_retries(request, rule, service_name, namespace, retries=3):
+    for retry in range(retries):
+        try:
+            ingress = _ensure_ingress_exists(request)
+            ingress.spec.rules.append(rule)
+            get_k8s_networking_client(request).replace_namespaced_ingress(name=ingress.metadata.name, namespace=namespace, body=ingress)
+            break  # if the operation was successful, break the retry loop
+        except ApiException as e:
+            if retry == retries - 1 or e.status in {404, 403}:
+                # re-raise the exception on the last retry, or if the error is a not found or forbidden error
+                raise
+            else:
+                time.sleep(1)
+
+def update_ingress_to_point_to_service(request, module_name, git_commit_hash):
+    settings = request.app.state.settings
+    prefix = settings.external_ds_url.split("/")[-1] #e.g dynamic_services
+    namespace = settings.namespace
+    deployment_name, service_name = _sanitize_deployment_name(module_name, git_commit_hash)
+
+    ingress_path = f"/{prefix}/{module_name}.{git_commit_hash}"
+    rule = V1IngressRule(
+        http=V1HTTPIngressRuleValue(
+            paths=[
+                V1HTTPIngressPath(
+                    path=ingress_path,
+                    path_type="Prefix",
+                    backend=V1IngressBackend(
+                        service={
+                            "name": deployment_name,  # Assuming the service name is the same as the deployment name
+                            "port": {
+                                "number": 5000
+                            }
+                        }
+                    ),
+                )
+            ]
+        )
+    )
+    _update_ingress_with_retries(request=request, rule=rule, service_name=service_name, namespace=namespace)
+
+
+
 
 
 def create_and_launch_deployment(request, module_name, module_git_commit_hash, image, labels, annotations, env, mounts) -> client.V1LabelSelector:
@@ -177,11 +217,16 @@ def create_and_launch_deployment(request, module_name, module_git_commit_hash, i
     return selector
 
 
+class DuplicateLabelsException(Exception):
+    pass
+
+
 def _get_deployment_status(request, label_selector_text) -> client.V1Deployment | None:
     apps_v1_api = get_k8s_app_client(request)
     deployment_statuses = apps_v1_api.list_namespaced_deployment(get_settings().namespace, label_selector=label_selector_text).items
     if len(deployment_statuses) > 1:
-        raise Exception("Something went wrong, there are too many deployments with the same labels, and there should only ever be one!")
+        raise DuplicateLabelsException("Something went wrong, there are too many deployments with the same labels, and there should only ever be "
+                                       "one!")
     elif len(deployment_statuses) == 0:
         return None
     return deployment_statuses[0]

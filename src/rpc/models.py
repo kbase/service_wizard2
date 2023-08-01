@@ -14,7 +14,7 @@ class JSONRPCResponse(BaseModel):
     version: str = "1.0"
     id: Optional[int]
     error: Optional[ErrorResponse]
-    result: Optional[List[dict] | List[List[dict]]] = Field(default_factory=lambda: None)
+    result: Optional[List[dict] | List[List[dict]] | List[str]] = Field(default_factory=lambda: None)
 
     def dict(self, *args, **kwargs):
         # Remove 'result' from the dictionary if it's None

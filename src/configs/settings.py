@@ -76,7 +76,7 @@ def get_settings() -> Settings:
         external_ds_url=os.environ.get("EXTERNAL_DS_URL"),
         external_sw_url=os.environ.get("EXTERNAL_SW_URL"),
         git_url="https://github.com/kbase/service_wizard2",
-        kbase_root_endpoint=os.environ.get("KBASE_ENDPOINT"),
+        kbase_root_endpoint=os.environ.get("KBASE_ROOT_ENDPOINT"),
         kbase_services_endpoint=os.environ.get("KBASE_SERVICES_ENDPOINT"),
         kubeconfig=os.environ.get("KUBECONFIG"),
         namespace=os.environ.get("NAMESPACE"),

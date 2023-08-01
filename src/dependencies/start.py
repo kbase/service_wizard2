@@ -7,7 +7,10 @@ from typing import Dict, Tuple
 from fastapi import HTTPException
 from fastapi import Request
 from kubernetes.client import ApiException
+from starlette.responses import JSONResponse
 
+from clients.baseclient import ServerError
+from src.rpc.models import JSONRPCResponse
 from src.configs.settings import Settings
 
 from src.dependencies.k8_wrapper import create_and_launch_deployment, create_clusterip_service, update_ingress_to_point_to_service
@@ -34,7 +37,7 @@ def get_env(request, module_name, module_version) -> Dict[str, str]:
         "AUTH_SERVICE_URL_ALLOW_INSECURE": "false",
     }
 
-    secure_param_list = request.state.cc(request, module_name, module_version)
+    secure_param_list = request.app.state.catalog_client.get_secure_params(module_name, module_version)
 
     for secure_param in secure_param_list:
         param_name = secure_param["param_name"]
@@ -44,8 +47,7 @@ def get_env(request, module_name, module_version) -> Dict[str, str]:
 
 
 def get_volume_mounts(request, module_name, module_version):
-    volume_mounts = list_service_volume_mounts(request, module_name, module_version)
-    print("Volume mounts are", volume_mounts)
+    volume_mounts = request.app.state.catalog_client.list_service_volume_mounts(module_name, module_version)
     if len(volume_mounts) > 0:
         mounts = []
         for vol in volume_mounts:
@@ -129,9 +131,9 @@ def _create_cluster_ip_service_helper(request, module_name, catalog_git_commit_h
             raise HTTPException(status_code=e.status, detail=detail) from e
 
 
-def _update_ingress_for_service(request, module_name, module_version, module_git_commit_hash):
+def _update_ingress_for_service_helper(request, module_name, git_commit_hash):
     try:
-        update_ingress_to_point_to_service(request, module_name, module_version, module_git_commit_hash)
+        update_ingress_to_point_to_service(request, module_name, git_commit_hash)
     except ApiException as e:
         if e.status == 409:
             logging.warning("Ingress already exists, skipping creation")
@@ -141,7 +143,10 @@ def _update_ingress_for_service(request, module_name, module_version, module_git
 
 
 def start_deployment(request: Request, module_name, module_version) -> DynamicServiceStatus:
-    module_info = get_module_info(request, module_name, module_version, require_dynamic_service=True)
+
+    logging.info("BEGIN")
+
+    module_info = request.app.state.catalog_client.get_module_info(module_name, module_version, require_dynamic_service=True)
     labels, annotations = _setup_metdata(
         module_name=module_name,
         requested_module_version=module_version,
@@ -149,8 +154,10 @@ def start_deployment(request: Request, module_name, module_version) -> DynamicSe
         version=module_info["version"],
         git_url=module_info["git_url"],
     )
+
     mounts = get_volume_mounts(request, module_name, module_version)
     env = get_env(request, module_name, module_version)
+
 
     _create_and_launch_deployment_helper(
         annotations=annotations,
@@ -164,6 +171,6 @@ def start_deployment(request: Request, module_name, module_version) -> DynamicSe
     )
 
     _create_cluster_ip_service_helper(request, module_name, module_info["git_commit_hash"], labels)
-    _update_ingress_for_service(request, module_name, module_info["git_commit_hash"], labels)
+    _update_ingress_for_service_helper(request, module_name, module_info["git_commit_hash"])
 
     return get_service_status_with_retries(request, module_name, module_version)
