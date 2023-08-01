@@ -1,10 +1,12 @@
 import logging
+import traceback
 
 from fastapi.requests import Request
 
-from src.rpc.error_responses import not_enough_params, invalid_params
+from clients.baseclient import ServerError
 from src.dependencies.status import get_all_dynamic_service_statuses, get_service_status_with_retries
-from src.rpc.models import JSONRPCResponse
+from src.rpc.error_responses import not_enough_params, invalid_params
+from src.rpc.models import JSONRPCResponse, ErrorResponse
 
 
 async def list_service_status(request: Request, params: dict, jrpc_id: str) -> JSONRPCResponse:
@@ -26,7 +28,22 @@ async def get_service_status_without_restart(request: Request, params: dict, jrp
     except:
         return invalid_params(method="get_service_status_without_restart", jrpc_id=jrpc_id)
 
-    service_status = get_service_status_with_retries(request, module_name, module_version)
+    try:
+        service_status = get_service_status_with_retries(request, module_name, module_version)
+    except ServerError as e:
+        traceback_str = traceback.format_exc()
+        return JSONRPCResponse(id=jrpc_id, error=ErrorResponse(message=f"{e.message}", code=-32000, name="Server error", error=f"{traceback_str}"))
+    except Exception as e:
+        traceback_str = traceback.format_exc()
+        return JSONRPCResponse(
+            id=jrpc_id,
+            error=ErrorResponse(
+                message=f"{e}",
+                code=-32603,
+                name="Internal error - An internal error occurred on the server while processing the request",
+                error=f"{traceback_str}",
+            ),
+        )
     return JSONRPCResponse(id=jrpc_id, result=[service_status])
 
 

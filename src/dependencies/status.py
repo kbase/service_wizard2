@@ -1,11 +1,11 @@
 import logging
 import time
-
-from pprint import pprint
 from typing import List
 
 from fastapi import Request, HTTPException
 
+import clients.baseclient
+from src.clients.baseclient import ServerError
 from src.configs.settings import get_settings
 from src.dependencies.k8_wrapper import query_k8s_deployment_status, get_k8s_deployments, DuplicateLabelsException
 from src.models.models import DynamicServiceStatus, CatalogModuleInfo
@@ -23,7 +23,9 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
     try:
         # logging.info(f"Looking up module_name{module_name} and git_commit{git_commit}")
         mv = request.app.state.catalog_client.get_module_info(module_name, git_commit)
-    except:
+    except clients.baseclient.ServerError as e:
+        raise HTTPException(status_code=500, detail=e)
+    except Exception as e:
         return CatalogModuleInfo(
             url=f"No Valid URL Found, or possible programming error",
             version=git_commit,
@@ -44,12 +46,25 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
 
 
 def get_service_status_with_retries(request, module_name, version, retries=10) -> DynamicServiceStatus:
-    # if there is some delay in starting up, then give it a couple seconds
+    """
+    Retrieve the status of a service based on the module version and git commit hash.
+    First check the catalog, and cache the results, then check kubernetes.
+    :param request:
+    :param module_name:
+    :param version:
+    :param retries:
+    :return:
+    """
+    # Validate request in catalog first
+    lookup_module_info(request=request, module_name=module_name, git_commit=version)  # type: 'CatalogModuleInfo'
+    # Then check kubernetes
     for _ in range(retries):
         try:
             status = get_dynamic_service_status_helper(request, module_name, version)
             if status.up == 1:
                 return status
+        except ServerError as e:
+            raise HTTPException(status_code=500, detail=e)
         except DuplicateLabelsException:
             raise HTTPException(status_code=500, detail="Duplicate labels found in deployment, an admin screwed something up!")
         except Exception as e:
@@ -71,6 +86,7 @@ def get_dynamic_service_status_helper(request, module_name, version) -> DynamicS
     """
 
     module_info = lookup_module_info(request=request, module_name=module_name, git_commit=version)  # type: 'CatalogModuleInfo'
+
     deployment = query_k8s_deployment_status(
         request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash
     )  # type: 'V1Deployment'
@@ -108,7 +124,6 @@ def get_all_dynamic_service_statuses(request: Request) -> List[DynamicServiceSta
     dynamic_service_statuses = []
     for deployment in deployment_statuses:
         deployment = deployment  # type: 'V1Deployment'
-        pprint(deployment.metadata.annotations)
         try:
             module_name = deployment.metadata.annotations["module_name"]
             git_commit = deployment.metadata.annotations["git_commit_hash"]

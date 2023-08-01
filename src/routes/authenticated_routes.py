@@ -21,22 +21,6 @@ router = APIRouter(
 from src.models.models import DynamicServiceStatus
 
 
-# @router.get("/get_service_log/")
-# def start(request: Request, module_name: str = Query(...), version: str = Query(...)) -> DynamicServiceStatus:
-#     # Your code here
-#
-#     # Create an instance of DynamicServiceStatus
-#     dynamic_service_status = DynamicServiceStatus(
-#         url="example.com",
-#         version="1.0",
-#         module_name=module_name,
-#         release_tags=["tag1", "tag2"],
-#         git_commit_hash="abcdef12345"
-#     )
-#
-#     # Return the response
-#     return dynamic_service_status
-
 
 @router.get("/start/")
 def start(request: Request, module_name: str = Query(...), version: str = Query(...)) -> DynamicServiceStatus:
