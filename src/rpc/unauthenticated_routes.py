@@ -3,7 +3,7 @@ import traceback
 
 from fastapi.requests import Request
 
-from clients.baseclient import ServerError
+from src.clients.baseclient import ServerError
 from src.dependencies.status import get_all_dynamic_service_statuses, get_service_status_with_retries
 from src.rpc.error_responses import not_enough_params, invalid_params
 from src.rpc.models import JSONRPCResponse, ErrorResponse

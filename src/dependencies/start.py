@@ -1,4 +1,3 @@
-import json
 import logging
 import re
 import traceback
@@ -7,12 +6,8 @@ from typing import Dict, Tuple
 from fastapi import HTTPException
 from fastapi import Request
 from kubernetes.client import ApiException
-from starlette.responses import JSONResponse
 
-from clients.baseclient import ServerError
-from src.rpc.models import JSONRPCResponse
 from src.configs.settings import Settings
-
 from src.dependencies.k8_wrapper import create_and_launch_deployment, create_clusterip_service, update_ingress_to_point_to_service
 from src.dependencies.status import get_service_status_with_retries
 from src.models.models import DynamicServiceStatus

@@ -2,8 +2,8 @@ import hashlib
 
 from cacheout import LRUCache
 
-from clients.CatalogClient import Catalog
-from configs.settings import Settings, get_settings
+from src.clients.CatalogClient import Catalog
+from src.configs.settings import Settings, get_settings
 
 
 def get_module_name_hash(module_name: str = None):

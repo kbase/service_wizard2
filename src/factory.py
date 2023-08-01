@@ -1,24 +1,21 @@
 import logging
 import os
-from typing import Tuple, Optional
+from typing import Optional
 
 import sentry_sdk
 from cacheout import LRUCache
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends
-from kubernetes import config
-from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api
+from fastapi import FastAPI
+from fastapi.middleware.gzip import GZipMiddleware
 from prometheus_fastapi_instrumentator import Instrumentator
-from starlette.datastructures import State
 
-from clients.CachedAuthClient import CachedAuthClient
-from src.configs.settings import get_settings, Settings
-from src.routes.authenticated_routes import router as sw2_authenticated_router
-from src.routes.unauthenticated_routes import router as sw2_unauthenticated_router
-from src.routes.rpc import router as sw2_rpc_router
+from src.clients.CachedAuthClient import CachedAuthClient
 from src.clients.CachedCatalogClient import CachedCatalogClient
 from src.clients.KubernetesClients import K8sClients
-from fastapi.middleware.gzip import GZipMiddleware
+from src.configs.settings import get_settings, Settings
+from src.routes.authenticated_routes import router as sw2_authenticated_router
+from src.routes.rpc import router as sw2_rpc_router
+from src.routes.unauthenticated_routes import router as sw2_unauthenticated_router
 
 
 def create_app(

@@ -4,7 +4,6 @@ from typing import List
 
 from fastapi import Request, HTTPException
 
-import clients.baseclient
 from src.clients.baseclient import ServerError
 from src.configs.settings import get_settings
 from src.dependencies.k8_wrapper import query_k8s_deployment_status, get_k8s_deployments, DuplicateLabelsException
@@ -23,7 +22,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
     try:
         # logging.info(f"Looking up module_name{module_name} and git_commit{git_commit}")
         mv = request.app.state.catalog_client.get_module_info(module_name, git_commit)
-    except clients.baseclient.ServerError as e:
+    except ServerError as e:
         raise HTTPException(status_code=500, detail=e)
     except Exception as e:
         return CatalogModuleInfo(

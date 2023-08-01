@@ -5,7 +5,7 @@ import requests
 from cacheout import LRUCache
 from fastapi import HTTPException
 
-from configs.settings import Settings, get_settings
+from src.configs.settings import Settings, get_settings
 
 
 class UserAuthRoles:
