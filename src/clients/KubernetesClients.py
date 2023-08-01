@@ -1,16 +1,20 @@
 import logging
 from typing import Optional
 
+from cacheout import LRUCache
 from kubernetes import config
 from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api
+
+
 class K8sClients:
     app_client: AppsV1Api
     core_client: CoreV1Api
     network_client: NetworkingV1Api
+    service_status_cache: LRUCache
 
     def __init__(
         self,
-        settings: 'Settings',
+        settings: "Settings",
         k8s_core_client: Optional[CoreV1Api] = None,
         k8s_app_client: Optional[AppsV1Api] = None,
         k8s_network_client: Optional[NetworkingV1Api] = None,
@@ -50,3 +54,4 @@ class K8sClients:
         self.app_client = k8s_app_client
         self.core_client = k8s_core_client
         self.network_client = k8s_network_client
+        self.service_status_cache = LRUCache(ttl=10)

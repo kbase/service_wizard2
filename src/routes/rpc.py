@@ -22,7 +22,6 @@ unauthenticated_routes = {
     "ServiceWizard.status": unauthenticated_routes.status,
     "ServiceWizard.version": unauthenticated_routes.version,
     "ServiceWizard.get_service_status_without_restart": unauthenticated_routes.get_service_status_without_restart,
-
 }
 authenticated_routes = {
     "ServiceWizard.start": authenticated_routes.start,
@@ -52,8 +51,7 @@ async def json_rpc(request: Request) -> Response | HTTPException | JSONRPCRespon
         if isinstance(authorized, Response):
             return authorized
 
-
     valid_response = jsonable_encoder(await request_function(request, params, jrpc_id))  # type:JSONRPCResponse
-    if 'error' in valid_response:
+    if "error" in valid_response:
         return JSONResponse(content=valid_response, status_code=500)
     return JSONResponse(content=valid_response, status_code=200)

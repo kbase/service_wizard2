@@ -143,7 +143,6 @@ def _update_ingress_for_service_helper(request, module_name, git_commit_hash):
 
 
 def start_deployment(request: Request, module_name, module_version) -> DynamicServiceStatus:
-
     logging.info("BEGIN")
 
     module_info = request.app.state.catalog_client.get_module_info(module_name, module_version, require_dynamic_service=True)
@@ -157,7 +156,6 @@ def start_deployment(request: Request, module_name, module_version) -> DynamicSe
 
     mounts = get_volume_mounts(request, module_name, module_version)
     env = get_env(request, module_name, module_version)
-
 
     _create_and_launch_deployment_helper(
         annotations=annotations,

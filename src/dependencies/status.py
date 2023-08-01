@@ -21,7 +21,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
     :return:
     """
     try:
-        logging.info(f"Looking up module_name{module_name} and git_commit{git_commit}")
+        # logging.info(f"Looking up module_name{module_name} and git_commit{git_commit}")
         mv = request.app.state.catalog_client.get_module_info(module_name, git_commit)
     except:
         return CatalogModuleInfo(
@@ -52,7 +52,8 @@ def get_service_status_with_retries(request, module_name, version, retries=10) -
                 return status
         except DuplicateLabelsException:
             raise HTTPException(status_code=500, detail="Duplicate labels found in deployment, an admin screwed something up!")
-        except Exception:
+        except Exception as e:
+            logging.error(e)
             pass
         time.sleep(2)
 

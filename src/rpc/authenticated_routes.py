@@ -8,6 +8,8 @@ from src.dependencies.start import start_deployment
 from src.rpc.models import ErrorResponse, JSONRPCResponse
 
 logging.basicConfig(level=logging.INFO)
+
+
 async def start(request: Request, params: list[dict], jrpc_id: int) -> JSONRPCResponse:
     """
     Start a service

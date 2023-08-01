@@ -1,7 +1,9 @@
 import logging
 import re
 import time
+from typing import Optional
 
+from cacheout import LRUCache
 from fastapi import Request
 from kubernetes import client
 from kubernetes.client import (
@@ -14,7 +16,11 @@ from kubernetes.client import (
     ApiException,
     CoreV1Api,
     AppsV1Api,
-    NetworkingV1Api, V1HTTPIngressRuleValue, V1HTTPIngressPath, V1IngressBackend,
+    NetworkingV1Api,
+    V1HTTPIngressRuleValue,
+    V1HTTPIngressPath,
+    V1IngressBackend,
+    V1Deployment,
 )
 
 from src.configs.settings import get_settings
@@ -30,6 +36,19 @@ def get_k8s_app_client(request: Request) -> AppsV1Api:
 
 def get_k8s_networking_client(request: Request) -> NetworkingV1Api:
     return request.app.state.k8s_clients.network_client
+
+
+def _get_k8s_cache(request: Request) -> LRUCache:
+    return request.app.state.k8s_clients.service_status_cache
+
+
+def check_service_status_cache(request: Request, label_selector_text) -> V1Deployment:
+    cache = _get_k8s_cache(request)
+    return cache.get(label_selector_text, None)
+
+
+def populate_service_status_cache(request: Request, label_selector_text, data: list):
+    _get_k8s_cache(request).set(label_selector_text, data)
 
 
 def get_pods_in_namespace(
@@ -147,11 +166,22 @@ def _ensure_ingress_exists(request):
             raise
 
 
-def _update_ingress_with_retries(request, rule, service_name, namespace, retries=3):
+def _rule_exists_in_ingress(ingress, rule):
+    """Check if a rule already exists in an ingress."""
+    for existing_rule in ingress.spec.rules:
+        # Check that http exists and has a paths attribute before comparing
+        if existing_rule.http and existing_rule.http.paths and existing_rule.http.paths[0].path == rule.http.paths[0].path:
+            return True
+    return False
+
+
+def _update_ingress_with_retries(request, rule, namespace, retries=3):
     for retry in range(retries):
         try:
             ingress = _ensure_ingress_exists(request)
-            ingress.spec.rules.append(rule)
+            # Only append the rule if it doesn't exist already
+            if not _rule_exists_in_ingress(ingress, rule):
+                ingress.spec.rules.append(rule)
             get_k8s_networking_client(request).replace_namespaced_ingress(name=ingress.metadata.name, namespace=namespace, body=ingress)
             break  # if the operation was successful, break the retry loop
         except ApiException as e:
@@ -161,9 +191,10 @@ def _update_ingress_with_retries(request, rule, service_name, namespace, retries
             else:
                 time.sleep(1)
 
+
 def update_ingress_to_point_to_service(request, module_name, git_commit_hash):
     settings = request.app.state.settings
-    prefix = settings.external_ds_url.split("/")[-1] #e.g dynamic_services
+    prefix = settings.external_ds_url.split("/")[-1]  # e.g dynamic_services
     namespace = settings.namespace
     deployment_name, service_name = _sanitize_deployment_name(module_name, git_commit_hash)
 
@@ -174,22 +205,12 @@ def update_ingress_to_point_to_service(request, module_name, git_commit_hash):
                 V1HTTPIngressPath(
                     path=ingress_path,
                     path_type="Prefix",
-                    backend=V1IngressBackend(
-                        service={
-                            "name": deployment_name,  # Assuming the service name is the same as the deployment name
-                            "port": {
-                                "number": 5000
-                            }
-                        }
-                    ),
+                    backend=V1IngressBackend(service={"name": service_name, "port": {"number": 5000}}),
                 )
             ]
         )
     )
-    _update_ingress_with_retries(request=request, rule=rule, service_name=service_name, namespace=namespace)
-
-
-
+    _update_ingress_with_retries(request=request, rule=rule, namespace=namespace)
 
 
 def create_and_launch_deployment(request, module_name, module_git_commit_hash, image, labels, annotations, env, mounts) -> client.V1LabelSelector:
@@ -221,15 +242,38 @@ class DuplicateLabelsException(Exception):
     pass
 
 
-def _get_deployment_status(request, label_selector_text) -> client.V1Deployment | None:
+def _get_deployment_status(request, label_selector_text) -> Optional[client.V1Deployment]:
+    deployment_status = check_service_status_cache(request, label_selector_text)
+    if deployment_status is not None:
+        return deployment_status
+
+    # Fetch from Kubernetes if cache is empty
     apps_v1_api = get_k8s_app_client(request)
     deployment_statuses = apps_v1_api.list_namespaced_deployment(get_settings().namespace, label_selector=label_selector_text).items
+
+    # Raise exception if multiple deployments exist with the same labels, else set deployment_status
     if len(deployment_statuses) > 1:
-        raise DuplicateLabelsException("Something went wrong, there are too many deployments with the same labels, and there should only ever be "
-                                       "one!")
-    elif len(deployment_statuses) == 0:
-        return None
-    return deployment_statuses[0]
+        raise DuplicateLabelsException("Too many deployments with the same labels.")
+    deployment_status = None if len(deployment_statuses) == 0 else deployment_statuses[0]
+
+    # Update the cache
+    populate_service_status_cache(request=request, label_selector_text=label_selector_text, data=deployment_status)
+
+    return deployment_status
+
+
+# def _get_deployment_status(request, label_selector_text) -> client.V1Deployment | None:
+#     # TODO: Should cache this for 5 seconds, so multiple requests don't query the API.
+#     # TODO: However, this cache should only be used for READ operations, not WRITE operations
+#     apps_v1_api = get_k8s_app_client(request)
+#
+#     deployment_statuses = apps_v1_api.list_namespaced_deployment(get_settings().namespace, label_selector=label_selector_text).items
+#     if len(deployment_statuses) > 1:
+#         raise DuplicateLabelsException("Something went wrong, there are too many deployments with the same labels, and there should only ever be "
+#                                        "one!")
+#     elif len(deployment_statuses) == 0:
+#         return None
+#     return deployment_statuses[0]
 
 
 def query_k8s_deployment_status(request, module_name, module_git_commit_hash) -> client.V1Deployment:
