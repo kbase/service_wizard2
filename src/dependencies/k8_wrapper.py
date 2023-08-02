@@ -17,10 +17,9 @@ from kubernetes.client import (
     CoreV1Api,
     AppsV1Api,
     NetworkingV1Api,
-    V1HTTPIngressRuleValue,
     V1HTTPIngressPath,
     V1IngressBackend,
-    V1Deployment,
+    V1Deployment, V1HTTPIngressRuleValue,
 )
 
 from src.configs.settings import get_settings
@@ -52,9 +51,9 @@ def populate_service_status_cache(request: Request, label_selector_text, data: l
 
 
 def get_pods_in_namespace(
-    k8s_client: client.CoreV1Api,
-    field_selector=None,
-    label_selector="dynamic-service=true",
+        k8s_client: client.CoreV1Api,
+        field_selector=None,
+        label_selector="dynamic-service=true",
 ) -> client.V1PodList:
     """
     Retrieve a list of pods in a specific namespace based on the provided field and label selectors.
@@ -166,51 +165,50 @@ def _ensure_ingress_exists(request):
             raise
 
 
-def _rule_exists_in_ingress(ingress, rule):
-    """Check if a rule already exists in an ingress."""
-    for existing_rule in ingress.spec.rules:
-        # Check that http exists and has a paths attribute before comparing
-        if existing_rule.http and existing_rule.http.paths and existing_rule.http.paths[0].path == rule.http.paths[0].path:
-            return True
+def _path_exists_in_ingress(ingress, path):
+    """Check if a path already exists in an ingress with one rule only"""
+    if ingress.spec.rules[0].http:
+        for existing_path in ingress.spec.rules[0].http.paths:
+            if existing_path.path == path:
+                return True
     return False
 
 
-def _update_ingress_with_retries(request, rule, namespace, retries=3):
+class InvalidIngressError(Exception):
+    pass
+
+
+def _update_ingress_with_retries(request, new_path, namespace, retries=3):
     for retry in range(retries):
         try:
             ingress = _ensure_ingress_exists(request)
-            # Only append the rule if it doesn't exist already
-            if not _rule_exists_in_ingress(ingress, rule):
-                ingress.spec.rules.append(rule)
+            # Initialize http attribute with an empty paths list if it is None
+            if ingress.spec.rules[0].http is None:
+                ingress.spec.rules[0].http = V1HTTPIngressRuleValue(paths=[])
+            # Only append the path if it doesn't exist already
+            if not _path_exists_in_ingress(ingress, new_path.path):
+                ingress.spec.rules[0].http.paths.append(new_path)
             get_k8s_networking_client(request).replace_namespaced_ingress(name=ingress.metadata.name, namespace=namespace, body=ingress)
             break  # if the operation was successful, break the retry loop
         except ApiException as e:
-            if retry == retries - 1 or e.status in {404, 403}:
-                # re-raise the exception on the last retry, or if the error is a not found or forbidden error
+            if e.status not in {409, 422} or retry == retries - 1:
+                # re-raise the exception on the last retry, or if the error is not a conflict
                 raise
             else:
                 time.sleep(1)
 
 
-def update_ingress_to_point_to_service(request, module_name, git_commit_hash):
+def update_ingress_to_point_to_service(request: Request, module_name: str, git_commit_hash: str):
     settings = request.app.state.settings
-    prefix = settings.external_ds_url.split("/")[-1]  # e.g dynamic_services
     namespace = settings.namespace
     deployment_name, service_name = _sanitize_deployment_name(module_name, git_commit_hash)
-
-    ingress_path = f"/{prefix}/{module_name}.{git_commit_hash}"
-    rule = V1IngressRule(
-        http=V1HTTPIngressRuleValue(
-            paths=[
-                V1HTTPIngressPath(
-                    path=ingress_path,
-                    path_type="Prefix",
-                    backend=V1IngressBackend(service={"name": service_name, "port": {"number": 5000}}),
-                )
-            ]
-        )
+    path = f"/{settings.external_ds_url.split('/')[-1]}/{module_name}.{git_commit_hash}(/|$)(.*)"
+    new_path = V1HTTPIngressPath(
+        path=path,
+        path_type="ImplementationSpecific",
+        backend=V1IngressBackend(service={"name": service_name, "port": {"number": 5000}})
     )
-    _update_ingress_with_retries(request=request, rule=rule, namespace=namespace)
+    _update_ingress_with_retries(request=request, new_path=new_path, namespace=namespace)
 
 
 def create_and_launch_deployment(request, module_name, module_git_commit_hash, image, labels, annotations, env, mounts) -> client.V1LabelSelector:
