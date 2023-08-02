@@ -87,7 +87,7 @@ class CachedCatalogClient:
 
         if not version:
             version = "release"
-            
+
         key = module_name + "-" + version
         secure_config_params = self.secure_config_cache.get(key=key, default=None)
         if not secure_config_params:

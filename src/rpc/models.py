@@ -12,7 +12,7 @@ class ErrorResponse(BaseModel):
 
 class JSONRPCResponse(BaseModel):
     version: str = "1.0"
-    id: Optional[int]
+    id: Optional[int | str]
     error: Optional[ErrorResponse]
     result: Optional[List[dict] | List[List[dict]] | List[str]] = Field(default_factory=lambda: None)
 
