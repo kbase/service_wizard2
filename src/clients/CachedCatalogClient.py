@@ -36,6 +36,8 @@ class CachedCatalogClient:
         :param require_dynamic_service:  If True, the module must be marked as a dynamic service.
         :return: The module info from the KBase Catalog
         """
+        if not version:
+            version = "release"
         key = module_name + "-" + version
         module_info = self.module_info_cache.get(key=key, default=None)
         if not module_info:
@@ -59,6 +61,10 @@ class CachedCatalogClient:
         :param version: The version of the module.
         :return: A list of volume mounts for the service.
         """
+
+        if not version:
+            version = "release"
+
         key = module_name + "-" + version
         mounts = self.module_volume_mount_cache.get(key=key, default=None)
         if not mounts:
@@ -78,6 +84,10 @@ class CachedCatalogClient:
         :param version: The version of the module.
         :return: A dictionary of secure config parameters for the module.
         """
+
+        if not version:
+            version = "release"
+            
         key = module_name + "-" + version
         secure_config_params = self.secure_config_cache.get(key=key, default=None)
         if not secure_config_params:
