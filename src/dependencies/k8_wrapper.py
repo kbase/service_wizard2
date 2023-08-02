@@ -198,10 +198,13 @@ def _update_ingress_with_retries(request, new_path, namespace, retries=3):
                 time.sleep(1)
 
 
+
+
 def update_ingress_to_point_to_service(request: Request, module_name: str, git_commit_hash: str):
     settings = request.app.state.settings
     namespace = settings.namespace
     deployment_name, service_name = _sanitize_deployment_name(module_name, git_commit_hash)
+    # Need to sync this with Status methods
     path = f"/{settings.external_ds_url.split('/')[-1]}/{module_name}.{git_commit_hash}(/|$)(.*)"
     new_path = V1HTTPIngressPath(
         path=path,
