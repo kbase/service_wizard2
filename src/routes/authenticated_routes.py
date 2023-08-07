@@ -4,7 +4,7 @@ from typing import Union
 from fastapi import APIRouter, Depends, Request, Query, HTTPException
 
 from src.dependencies.middleware import is_authorized
-from src.dependencies.start import start_deployment
+from src.dependencies.lifecycle import start_deployment
 from src.models.models import ServiceLogWebSocket
 
 router = APIRouter(
@@ -19,7 +19,6 @@ router = APIRouter(
 
 
 from src.models.models import DynamicServiceStatus
-
 
 
 @router.get("/start/")

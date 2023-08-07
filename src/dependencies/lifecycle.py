@@ -1,6 +1,7 @@
 import logging
 import re
 import traceback
+from pprint import pprint
 from typing import Dict, Tuple
 
 from fastapi import HTTPException
@@ -8,8 +9,9 @@ from fastapi import Request
 from kubernetes.client import ApiException
 
 from src.configs.settings import Settings
-from src.dependencies.k8_wrapper import create_and_launch_deployment, create_clusterip_service, update_ingress_to_point_to_service
-from src.dependencies.status import get_service_status_with_retries
+from src.dependencies.k8_wrapper import create_and_launch_deployment, create_clusterip_service, update_ingress_to_point_to_service, delete_deployment, \
+    scale_replicas
+from src.dependencies.status import get_service_status_with_retries, lookup_module_info
 from src.models.models import DynamicServiceStatus
 
 
@@ -87,14 +89,14 @@ def _setup_metdata(module_name, requested_module_version, git_commit_hash, versi
 
 
 def _create_and_launch_deployment_helper(
-    annotations: Dict,
-    env: Dict,
-    image: str,
-    labels: Dict,
-    module_git_commit_hash: str,
-    module_name: str,
-    mounts: list[str],
-    request: Request,
+        annotations: Dict,
+        env: Dict,
+        image: str,
+        labels: Dict,
+        module_git_commit_hash: str,
+        module_name: str,
+        mounts: list[str],
+        request: Request,
 ):
     try:
         create_and_launch_deployment(
@@ -107,12 +109,15 @@ def _create_and_launch_deployment_helper(
             env=env,
             mounts=mounts,
         )
+        return False
     except ApiException as e:
         if e.status == 409:  # AlreadyExistsError
             logging.warning(e.body)
+            return True
         else:
             detail = traceback.format_exc()
             raise HTTPException(status_code=e.status, detail=detail) from e
+
 
 
 def _create_cluster_ip_service_helper(request, module_name, catalog_git_commit_hash, labels):
@@ -137,7 +142,7 @@ def _update_ingress_for_service_helper(request, module_name, git_commit_hash):
             raise HTTPException(status_code=e.status, detail=detail) from e
 
 
-def start_deployment(request: Request, module_name, module_version) -> DynamicServiceStatus:
+def start_deployment(request: Request, module_name, module_version, replicas=1) -> DynamicServiceStatus:
     logging.info("BEGIN")
 
     module_info = request.app.state.catalog_client.get_module_info(module_name, module_version, require_dynamic_service=True)
@@ -152,7 +157,8 @@ def start_deployment(request: Request, module_name, module_version) -> DynamicSe
     mounts = get_volume_mounts(request, module_name, module_version)
     env = get_env(request, module_name, module_version)
 
-    _create_and_launch_deployment_helper(
+    print("About to launch deployment")
+    deployment_already_exists = _create_and_launch_deployment_helper(
         annotations=annotations,
         env=env,
         image=module_info["docker_img_name"],
@@ -162,8 +168,30 @@ def start_deployment(request: Request, module_name, module_version) -> DynamicSe
         mounts=mounts,
         request=request,
     )
+    if deployment_already_exists:
+        print("Deployment exists, attempting to scale")
+        scale_replicas(request=request, module_name=module_name, module_git_commit_hash=module_info["git_commit_hash"], replicas=replicas)
+        print("Done scaling")
 
     _create_cluster_ip_service_helper(request, module_name, module_info["git_commit_hash"], labels)
     _update_ingress_for_service_helper(request, module_name, module_info["git_commit_hash"])
 
     return get_service_status_with_retries(request, module_name, module_version)
+
+
+def stop_deployment(request: Request, module_name, module_version) -> DynamicServiceStatus:
+    module_info = lookup_module_info(request, module_name, module_version)
+    deployment = scale_replicas(request=request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash, replicas=0)
+    return DynamicServiceStatus(
+        url=module_info.url,
+        version=module_info.version,
+        module_name=module_info.module_name,
+        release_tags=module_info.release_tags,
+        git_commit_hash=module_info.git_commit_hash,
+        deployment_name=deployment.metadata.name,
+        replicas=deployment.spec.replicas,
+        updated_replicas=deployment.status.updated_replicas,
+        ready_replicas=deployment.status.ready_replicas,
+        available_replicas=deployment.status.available_replicas,
+        unavailable_replicas=deployment.status.unavailable_replicas,
+    )

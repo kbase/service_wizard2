@@ -27,7 +27,6 @@ async def is_authorized(
     # but also throw a different exception if the auth service is down
     try:
         ac = request.app.state.auth_client  # type: CachedAuthClient
-        print("About to check", authorization, kbase_session)
         return ac.is_authorized(token=authorization if authorization else kbase_session)
     except HTTPException as e:
         if e.status_code == 401:

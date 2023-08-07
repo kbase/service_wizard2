@@ -11,6 +11,7 @@ class K8sClients:
     core_client: CoreV1Api
     network_client: NetworkingV1Api
     service_status_cache: LRUCache
+    all_service_status_cache: LRUCache
 
     def __init__(
         self,
@@ -55,3 +56,4 @@ class K8sClients:
         self.core_client = k8s_core_client
         self.network_client = k8s_network_client
         self.service_status_cache = LRUCache(ttl=10)
+        self.all_service_status_cache = LRUCache(ttl=10)

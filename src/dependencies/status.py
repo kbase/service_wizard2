@@ -34,7 +34,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
         )
 
     module_info = CatalogModuleInfo(
-        #Need to sync this URL with kubernetes methods
+        # Need to sync this URL with kubernetes methods
         url=f"{get_settings().external_ds_url}/{mv['module_name']}.{mv['git_commit_hash']}",
         version=mv["version"],
         module_name=mv["module_name"],

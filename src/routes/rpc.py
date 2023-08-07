@@ -26,6 +26,8 @@ unauthenticated_routes = {
 authenticated_routes = {
     "ServiceWizard.start": authenticated_routes.start,
     "ServiceWizard.get_service_status": authenticated_routes.start,
+    "ServiceWizard.stop": authenticated_routes.stop,
+    # "ServiceWizard.get_logs": authenticated_routes.get_logs,
 }
 
 # Combine the dictionaries
