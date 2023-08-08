@@ -2,19 +2,20 @@ import logging
 import traceback
 from typing import Callable
 from fastapi import Request
-from dependencies import logs
+from src.dependencies import logs
 from src.clients.baseclient import ServerError
 from src.dependencies.lifecycle import start_deployment, stop_deployment
+
 from src.rpc.models import ErrorResponse, JSONRPCResponse
 
 logging.basicConfig(level=logging.INFO)
 
 
 def handle_request(
-        request: Request,
-        params: list[dict],
-        jrpc_id: int,
-        action: Callable,
+    request: Request,
+    params: list[dict],
+    jrpc_id: int,
+    action: Callable,
 ) -> JSONRPCResponse:
     # This is for backwards compatibility with SW1 logging functions
     service = params[0].get("service")
@@ -55,6 +56,7 @@ def stop(request: Request, params: list[dict], jrpc_id: int) -> JSONRPCResponse:
 
 def get_service_log(request: Request, params: list[dict], jrpc_id: int) -> JSONRPCResponse:
     return handle_request(request, params, jrpc_id, logs.get_service_log)
+
 
 def get_service_log_web_socket(request: Request, params: list[dict], jrpc_id: int) -> JSONRPCResponse:
     return handle_request(request, params, jrpc_id, logs.get_service_log_web_socket)

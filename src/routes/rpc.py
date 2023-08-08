@@ -37,12 +37,13 @@ known_methods = {**unauthenticated_routes, **authenticated_routes}
 async def get_body(request: Request):
     return await request.body()
 
+
 @router.post("/rpc", response_model=None)
 @router.post("/rpc/", response_model=None)
 @router.post("/", response_model=None)
 def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HTTPException | JSONRPCResponse | JSONResponse:
     try:
-        method, params, jrpc_id =  validate_rpc_request(request, body)
+        method, params, jrpc_id = validate_rpc_request(request, body)
     except Exception as e:
         return JSONResponse(content=jsonable_encoder(json_exception(e)), status_code=500)
 
@@ -51,7 +52,7 @@ def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HT
         return method_not_found(method=method, jrpc_id=jrpc_id)
 
     if request_function in authenticated_routes.values():
-        authorized =  rpc_auth(request, jrpc_id)
+        authorized = rpc_auth(request, jrpc_id)
         # print("Authorized is", authorized.body)
         if isinstance(authorized, Response):
             return authorized

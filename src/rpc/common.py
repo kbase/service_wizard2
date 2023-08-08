@@ -13,7 +13,7 @@ from src.rpc.models import JSONRPCResponse
 
 def validate_rpc_request(request, body):
     # Instead of request.json()
-    json_data =  json.loads(body.decode("utf-8"))
+    json_data = json.loads(body.decode("utf-8"))
 
     if not isinstance(json_data, dict):
         raise ValueError(f"Invalid JSON format, got {type(json_data)}")

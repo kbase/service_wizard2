@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request, Query, HTTPException
 
 from src.dependencies.middleware import is_authorized
 from src.dependencies.lifecycle import start_deployment
-from src.models.models import ServiceLogWebSocket
+from src.models.models import ServiceLogWebSocket, DynamicServiceStatus
 
 router = APIRouter(
     tags=["authenticated", "logs"],
@@ -18,7 +18,7 @@ router = APIRouter(
 )
 
 
-from src.models.models import DynamicServiceStatus
+
 
 
 @router.get("/start/")

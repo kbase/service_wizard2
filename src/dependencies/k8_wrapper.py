@@ -56,9 +56,9 @@ def populate_service_status_cache(request: Request, label_selector_text, data: l
 
 
 def get_pods_in_namespace(
-        k8s_client: client.CoreV1Api,
-        field_selector=None,
-        label_selector="dynamic-service=true",
+    k8s_client: client.CoreV1Api,
+    field_selector=None,
+    label_selector="dynamic-service=true",
 ) -> client.V1PodList:
     """
     Retrieve a list of pods in a specific namespace based on the provided field and label selectors.
@@ -309,15 +309,12 @@ def scale_replicas(request, module_name, module_git_commit_hash, replicas: int) 
     return get_k8s_app_client(request).replace_namespaced_deployment(name=deployment.metadata.name, namespace=namespace, body=deployment)
 
 
-
-
 def get_logs_for_first_pod_in_deployment(request, module_name, module_git_commit_hash):
-    print("YO")
     deployment_name, _ = _sanitize_deployment_name(module_name, module_git_commit_hash)
     namespace = request.app.state.settings.namespace
     label_selector_text = f"us.kbase.module.module_name={module_name.lower()}," + f"us.kbase.module.git_commit_hash={module_git_commit_hash}"
 
-    pod_list = get_k8s_core_client(request).list_namespaced_pod(namespace, label_selector=label_selector_text   )
+    pod_list = get_k8s_core_client(request).list_namespaced_pod(namespace, label_selector=label_selector_text)
 
     if pod_list.items:
         pod_name = pod_list.items[0].metadata.name
