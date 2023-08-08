@@ -9,7 +9,7 @@ from src.rpc.error_responses import not_enough_params, invalid_params
 from src.rpc.models import JSONRPCResponse, ErrorResponse
 
 
-async def list_service_status(request: Request, params: dict, jrpc_id: str) -> JSONRPCResponse:
+def list_service_status(request: Request, params: dict, jrpc_id: str) -> JSONRPCResponse:
     if params:
         logging.debug(f"dropping list_service_status params since SW1 doesn't use them: {params}")
     # TODO Catch HTTP Exceptions and return them as JSONRPCResponse errors
@@ -18,7 +18,7 @@ async def list_service_status(request: Request, params: dict, jrpc_id: str) -> J
     return JSONRPCResponse(id=jrpc_id, result=[all_service_statuses])
 
 
-async def get_service_status_without_restart(request: Request, params: dict, jrpc_id: str) -> JSONRPCResponse:
+def get_service_status_without_restart(request: Request, params: dict, jrpc_id: str) -> JSONRPCResponse:
     try:
         if len(params):
             module_name = params[0].get("module_name")
@@ -47,7 +47,7 @@ async def get_service_status_without_restart(request: Request, params: dict, jrp
     return JSONRPCResponse(id=jrpc_id, result=[service_status])
 
 
-async def status(request: Request, params: dict, jrpc_id: str) -> JSONRPCResponse:
+def status(request: Request, params: dict, jrpc_id: str) -> JSONRPCResponse:
     if params:
         logging.debug(f"dropping status params since SW1 doesn't use them: {params}")
 
