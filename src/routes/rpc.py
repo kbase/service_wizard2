@@ -1,6 +1,6 @@
 from typing import Callable
 
-from fastapi import Request, APIRouter, HTTPException
+from fastapi import Request, APIRouter, HTTPException, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 
@@ -27,19 +27,22 @@ authenticated_routes = {
     "ServiceWizard.start": authenticated_routes.start,
     "ServiceWizard.get_service_status": authenticated_routes.start,
     "ServiceWizard.stop": authenticated_routes.stop,
-    # "ServiceWizard.get_logs": authenticated_routes.get_logs,
+    "ServiceWizard.get_service_log": authenticated_routes.get_service_log,
 }
 
 # Combine the dictionaries
 known_methods = {**unauthenticated_routes, **authenticated_routes}
 
 
+async def get_body(request: Request):
+    return await request.body()
+
 @router.post("/rpc", response_model=None)
 @router.post("/rpc/", response_model=None)
 @router.post("/", response_model=None)
-async def json_rpc(request: Request) -> Response | HTTPException | JSONRPCResponse | JSONResponse:
+def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HTTPException | JSONRPCResponse | JSONResponse:
     try:
-        method, params, jrpc_id = await validate_rpc_request(request)
+        method, params, jrpc_id =  validate_rpc_request(request, body)
     except Exception as e:
         return JSONResponse(content=jsonable_encoder(json_exception(e)), status_code=500)
 
@@ -48,12 +51,12 @@ async def json_rpc(request: Request) -> Response | HTTPException | JSONRPCRespon
         return method_not_found(method=method, jrpc_id=jrpc_id)
 
     if request_function in authenticated_routes.values():
-        authorized = await rpc_auth(request, jrpc_id)
+        authorized =  rpc_auth(request, jrpc_id)
         # print("Authorized is", authorized.body)
         if isinstance(authorized, Response):
             return authorized
 
-    valid_response = jsonable_encoder(await request_function(request, params, jrpc_id))  # type:JSONRPCResponse
+    valid_response = jsonable_encoder(request_function(request, params, jrpc_id))  # type:JSONRPCResponse
     if "error" in valid_response:
         return JSONResponse(content=valid_response, status_code=500)
     return JSONResponse(content=valid_response, status_code=200)

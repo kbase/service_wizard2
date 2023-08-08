@@ -1,3 +1,5 @@
+import json
+
 from fastapi import HTTPException, Request
 
 from src.dependencies.middleware import is_authorized
@@ -9,8 +11,9 @@ from src.rpc.error_responses import (
 from src.rpc.models import JSONRPCResponse
 
 
-async def validate_rpc_request(request):
-    json_data = await request.json()
+def validate_rpc_request(request, body):
+    # Instead of request.json()
+    json_data =  json.loads(body.decode("utf-8"))
 
     if not isinstance(json_data, dict):
         raise ValueError(f"Invalid JSON format, got {type(json_data)}")
@@ -40,7 +43,7 @@ def validate_rpc_response(response: JSONRPCResponse):
     return response
 
 
-async def rpc_auth(request: Request, jrpc_id: str):
+def rpc_auth(request: Request, jrpc_id: str):
     # Extract the Authorization header and the kbase_session cookie
     authorization = request.headers.get("Authorization")
     kbase_session = request.cookies.get("kbase_session")
@@ -52,7 +55,7 @@ async def rpc_auth(request: Request, jrpc_id: str):
 
     # Call the authenticated_user function
     try:
-        authorized = await is_authorized(request=request, kbase_session=kbase_session, authorization=authorization)
+        authorized = is_authorized(request=request, kbase_session=kbase_session, authorization=authorization)
         if not authorized:
             return json_rpc_response_to_exception(token_validation_failed(jrpc_id))
     except:

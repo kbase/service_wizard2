@@ -7,7 +7,7 @@ from src.clients.CachedAuthClient import CachedAuthClient
 ALPHANUMERIC_PATTERN = r"^[a-zA-Z0-9]+$"
 
 
-async def is_authorized(
+def is_authorized(
     request: Request,
     authorization: str = Header(
         None,
