@@ -21,6 +21,7 @@ from kubernetes.client import (
     V1IngressBackend,
     V1Deployment,
     V1HTTPIngressRuleValue,
+    V1Toleration,
 )
 
 from src.configs.settings import get_settings
@@ -81,14 +82,8 @@ def v1_volume_mount_factory(mounts):
             mount_parts = mount.split(":")
             if len(mount_parts) != 3:
                 logging.error(f"Invalid mount format: {mount}")
-            volumes.append(
-                client.V1Volume(name=f"volume-{i}", host_path=client.V1HostPathVolumeSource(path=mount_parts[0]))
-            )  # This is your host path
-            volume_mounts.append(
-                client.V1VolumeMount(
-                    name=f"volume-{i}", mount_path=mount_parts[1], read_only=bool(mount_parts[2] == "ro")
-                )  # This is your container path
-            )
+            volumes.append(client.V1Volume(name=f"volume-{i}", host_path=client.V1HostPathVolumeSource(path=mount_parts[0])))  # This is your host path
+            volume_mounts.append(client.V1VolumeMount(name=f"volume-{i}", mount_path=mount_parts[1], read_only=bool(mount_parts[2] == "ro")))  # This is your container path
 
     return volumes, volume_mounts
 
@@ -147,9 +142,7 @@ def _ensure_ingress_exists(request):
     # This should only ever be called once, or if in case someone deletes the ingress for it
     settings = request.app.state.settings
     networking_v1_api = get_k8s_networking_client(request)
-    ingress_spec = V1IngressSpec(
-        rules=[V1IngressRule(host=settings.kbase_root_endpoint.replace("https://", "").replace("https://", ""), http=None)]  # no paths specified
-    )
+    ingress_spec = V1IngressSpec(rules=[V1IngressRule(host=settings.kbase_root_endpoint.replace("https://", "").replace("https://", ""), http=None)])  # no paths specified
     ingress = V1Ingress(
         api_version="networking.k8s.io/v1",
         kind="Ingress",
@@ -209,14 +202,13 @@ def update_ingress_to_point_to_service(request: Request, module_name: str, git_c
     deployment_name, service_name = _sanitize_deployment_name(module_name, git_commit_hash)
     # Need to sync this with Status methods
     path = f"/{settings.external_ds_url.split('/')[-1]}/{module_name}.{git_commit_hash}(/|$)(.*)"
-    new_path = V1HTTPIngressPath(
-        path=path, path_type="ImplementationSpecific", backend=V1IngressBackend(service={"name": service_name, "port": {"number": 5000}})
-    )
+    new_path = V1HTTPIngressPath(path=path, path_type="ImplementationSpecific", backend=V1IngressBackend(service={"name": service_name, "port": {"number": 5000}}))
     _update_ingress_with_retries(request=request, new_path=new_path, namespace=namespace)
 
 
 def create_and_launch_deployment(request, module_name, module_git_commit_hash, image, labels, annotations, env, mounts) -> client.V1LabelSelector:
     deployment_name, service_name = _sanitize_deployment_name(module_name, module_git_commit_hash)
+    namespace = request.app.state.settings.namespace
 
     annotations["k8s_deployment_name"] = deployment_name
     annotations["k8s_service_name"] = service_name
@@ -230,13 +222,13 @@ def create_and_launch_deployment(request, module_name, module_git_commit_hash, i
         volume_mounts=volume_mounts,
     )
 
-    template = client.V1PodTemplateSpec(metadata=metadata, spec=client.V1PodSpec(containers=[container], volumes=volumes))
-    selector = client.V1LabelSelector(
-        match_labels={"us.kbase.module.module_name": module_name.lower(), "us.kbase.module.git_commit_hash": module_git_commit_hash}
-    )
+    toleration = V1Toleration(effect="NoSchedule", key=namespace, operator="Exists")
+
+    template = client.V1PodTemplateSpec(metadata=metadata, spec=client.V1PodSpec(containers=[container], volumes=volumes, tolerations=toleration))
+    selector = client.V1LabelSelector(match_labels={"us.kbase.module.module_name": module_name.lower(), "us.kbase.module.git_commit_hash": module_git_commit_hash})
     spec = client.V1DeploymentSpec(replicas=1, template=template, selector=selector)
     deployment = client.V1Deployment(api_version="apps/v1", kind="Deployment", metadata=metadata, spec=spec)
-    get_k8s_app_client(request).create_namespaced_deployment(body=deployment, namespace=get_settings().namespace)
+    get_k8s_app_client(request).create_namespaced_deployment(body=deployment, namespace=namespace)
     return selector
 
 
@@ -317,9 +309,9 @@ def get_logs_for_first_pod_in_deployment(request, module_name, module_git_commit
     pod_list = get_k8s_core_client(request).list_namespaced_pod(namespace, label_selector=label_selector_text)
 
     if pod_list.items:
+        # Convert the string into a list of strings, but keep the "\n" at the end of each line like in SW1
         pod_name = pod_list.items[0].metadata.name
         logs = get_k8s_core_client(request).read_namespaced_pod_log(name=pod_name, namespace=namespace, timestamps=True).splitlines(keepends=True)
-        # Convert the string into a list of strings, but keep the "\n"
         return pod_name, logs
 
-    return "No Logs Found", "No Logs Found"
+    return (f"No Matching Pods in namespace:{namespace} could be found with label_selector={label_selector_text}",) * 2

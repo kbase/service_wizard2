@@ -1,14 +1,20 @@
 import json
+import traceback
+from typing import Callable
 
-from fastapi import HTTPException, Request
+from fastapi import HTTPException
+from starlette.requests import Request
 
+from src.clients.baseclient import ServerError
 from src.dependencies.middleware import is_authorized
 from src.rpc.error_responses import (
     no_authenticated_headers_passed,
     token_validation_failed,
     json_rpc_response_to_exception,
+    no_params_passed,
+    not_enough_params,
 )
-from src.rpc.models import JSONRPCResponse
+from src.rpc.models import ErrorResponse, JSONRPCResponse
 
 
 def validate_rpc_request(request, body):
@@ -58,5 +64,44 @@ def rpc_auth(request: Request, jrpc_id: str):
         authorized = is_authorized(request=request, kbase_session=kbase_session, authorization=authorization)
         if not authorized:
             return json_rpc_response_to_exception(token_validation_failed(jrpc_id))
-    except:
-        raise
+    except Exception as e:
+        raise ("Error validating token", e)
+
+
+def handle_rpc_request(
+    request: Request,
+    params: list[dict],
+    jrpc_id: int,
+    action: Callable,
+) -> JSONRPCResponse:
+    # This is for backwards compatibility with SW1 logging functions
+    method_name = action.__name__
+    try:
+        params = params[0]
+    except IndexError:
+        return no_params_passed(method=method_name, jrpc_id=jrpc_id)
+
+    service = params.get("service", {})
+    module_name = service.get("module_name", params.get("module_name"))
+    module_version = service.get("version", params.get("version"))
+
+    if not module_name or not module_version:
+        return not_enough_params(method=method_name, jrpc_id=jrpc_id)
+
+    try:
+        result = action(request, module_name, module_version)
+        return JSONRPCResponse(id=jrpc_id, result=[result])
+    except ServerError as e:
+        traceback_str = traceback.format_exc()
+        return JSONRPCResponse(id=jrpc_id, error=ErrorResponse(message=f"{e.message}", code=-32000, name="Server error", error=f"{traceback_str}"))
+    except Exception as e:
+        traceback_str = traceback.format_exc()
+        return JSONRPCResponse(
+            id=jrpc_id,
+            error=ErrorResponse(
+                message=f"{e}",
+                code=-32603,
+                name="Internal error - An internal error occurred on the server while processing the request",
+                error=f"{traceback_str}",
+            ),
+        )

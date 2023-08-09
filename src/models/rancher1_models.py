@@ -29,6 +29,3 @@ class ContainerState(str, Enum):
     IMAGE_PULL_BACK_OFF = "image-pull-backoff"
     INIT = "init"
     PENDING = "pending"
-
-
-from enum import Enum

@@ -9,5 +9,3 @@ if [[ -n $VIRTUAL_ENV ]]; then
 else
     echo "Pipenv shell is not activated. Please 'pipenv shell' before running this script"
 fi
-
-

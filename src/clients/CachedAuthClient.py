@@ -1,5 +1,4 @@
 from functools import cached_property
-from pprint import pprint
 
 import requests
 from cacheout import LRUCache
@@ -38,7 +37,6 @@ class CachedAuthClient:
         :return: True if the token is valid, False otherwise
         :raises: HTTPException if the token is invalid or the auth service is down
         """
-        print(f"roles for {token}", self.get_user_auth_roles(token))
         return bool(self.get_user_auth_roles(token) is not None)
 
     def is_admin(self, token: str) -> bool:

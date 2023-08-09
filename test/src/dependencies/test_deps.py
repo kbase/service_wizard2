@@ -1,11 +1,10 @@
-import json
-
 import pytest
+import requests_mock
 from cacheout import LRUCache
 from fastapi.testclient import TestClient
+
 from src.configs.settings import get_settings
 from src.factory import create_app
-import requests_mock
 
 
 @pytest.fixture

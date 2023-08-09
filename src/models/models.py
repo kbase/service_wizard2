@@ -1,10 +1,7 @@
 from enum import Enum
-from functools import cached_property
 from typing import List
 
 from pydantic import BaseModel
-
-from src.configs.settings import get_settings
 
 
 class ServiceLogWebSocket(BaseModel):
@@ -20,16 +17,6 @@ class CatalogModuleInfo(BaseModel):
     git_commit_hash: str
 
 
-from typing import List
-from enum import Enum
-from pydantic import BaseModel
-
-
-from typing import List
-from enum import Enum
-from pydantic import BaseModel
-
-
 class ServiceHealth(Enum):
     HEALTHY = "healthy"  # All replicas are available and healthy
     UNHEALTHY = "unhealthy"  # At least one replica is available but unhealthy
@@ -41,7 +28,7 @@ class ServiceHealth(Enum):
 
 class ServiceStatus(Enum):
     RUNNING = "active"  # All replicas are running
-    STOPPED = "stopped"  # There are no replicas
+    STOPPED = "stopped"  # There are no replicas. But #inactive could be used for this
     STARTING = "starting"  # At least one replica is starting up
     STOPPING = "stopping"  # At least one replica is stopping
     PAUSED = "paused"  # At least one replica is paused
@@ -87,7 +74,9 @@ class DynamicServiceStatus(BaseModel):
     @classmethod
     def calculate_health(cls, replicas: int, available_replicas: int) -> ServiceHealth:
         if replicas == 0:
-            return ServiceHealth.NONE
+            # Could return ServiceHealth.NONE here
+            return ServiceHealth.UNHEALTHY
+
         elif replicas > 0 and replicas == available_replicas:
             return ServiceHealth.HEALTHY
         elif replicas > 0 and 0 < available_replicas < replicas:

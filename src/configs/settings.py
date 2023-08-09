@@ -52,16 +52,14 @@ def get_settings() -> Settings:
         for role in [
             os.environ.get("KBASE_ADMIN_ROLE"),
             os.environ.get("CATALOG_ADMIN_ROLE"),
-            os.environ.get("SERVICE_WIZARD_ROLE"),
+            os.environ.get("SERVICE_WIZARD_ADMIN_ROLE"),
         ]
         if role
     ]
 
     # At least one required admin role must be set
     if len(admin_roles) == 0:
-        raise EnvironmentVariableError(
-            "At least one admin role (KBASE_ADMIN_ROLE, CATALOG_ADMIN_ROLE, or SERVICE_WIZARD_ROLE) must be set in the .env file"
-        )
+        raise EnvironmentVariableError("At least one admin role (KBASE_ADMIN_ROLE, CATALOG_ADMIN_ROLE, or SERVICE_WIZARD_ADMIN_ROLE) must be set in the .env file")
 
     # USE_INCLUSTER_CONFIG is a boolean that takes precedence over KUBECONFIG
     if "KUBECONFIG" not in os.environ and "USE_INCLUSTER_CONFIG" not in os.environ:

@@ -5,7 +5,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 
 from src.rpc import authenticated_routes, unauthenticated_routes
-from src.rpc.common import validate_rpc_request, validate_rpc_response, rpc_auth
+from src.rpc.common import validate_rpc_request, rpc_auth
 from src.rpc.error_responses import (
     method_not_found,
     json_exception,

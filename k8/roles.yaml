@@ -5,7 +5,7 @@ metadata:
   namespace: staging-dynamic-services
 rules:
   - apiGroups: [""] # Default core API group
-    resources: ["pods", "deployments", "services", "ingresses"]
+    resources: ["pods", "pods/log", "deployments", "services", "ingresses"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   - apiGroups: ["apps"]
     resources: ["deployments"]

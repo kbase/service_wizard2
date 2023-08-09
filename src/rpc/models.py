@@ -1,6 +1,6 @@
-from typing import Optional, List, Any
+from typing import Optional, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class ErrorResponse(BaseModel):

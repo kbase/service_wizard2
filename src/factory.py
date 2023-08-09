@@ -3,7 +3,7 @@ import os
 from typing import Optional
 
 import sentry_sdk
-from cacheout import LRUCache
+from cacheout import LRUCache  # noqa F401
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
@@ -26,25 +26,20 @@ def create_app(
 ) -> FastAPI:
     """
     Create the app with the required dependencies.
-
-    Parameters:
-        token_cache (LRUCache): LRUCache for tokens.
-        catalog_cache (LRUCache): LRUCache for catalog data.
-        catalog_client (Optional[Catalog]): Optional existing Catalog client.
-        k8s_core_client (Optional[client.CoreV1Api]): Optional existing CoreV1Api client.
-        k8s_app_client (Optional[client.AppsV1Api]): Optional existing AppsV1Api client.
-        k8s_network_client (Optional[client.NetworkingV1Api]): Optional existing NetworkingV1Api client.
-        settings (Optional[Settings]): Optional settings object containing configuration details.
-
-    Returns:
+    :param catalog_client: An instance of CachedCatalogClient
+    :param auth_client: An instance of CachedAuthClient
+    :param k8s_clients:  An instance of K8sClients
+    :param settings:  An instance of Settings
+    :return:
          Fastapi app and clients saved it its state attribute
     """
+
     logging.basicConfig(level=logging.DEBUG)
     load_dotenv(os.environ.get("DOTENV_FILE_LOCATION", ".env"))
 
+    # Instrumentation for Sentry connection
+    # This is an administrator telemetry setting and should not be used for local development
     if os.environ.get("SENTRY_DSN"):
-        # Monkeypatch here
-        # Will require socks proxy for local development
         sentry_sdk.init(
             dsn=os.environ["SENTRY_DSN"],
             traces_sample_rate=1.0,
@@ -54,21 +49,18 @@ def create_app(
         settings = get_settings()
     app = FastAPI(root_path=settings.root_path)  # type: FastAPI
 
-    # TODO Combine the cache and catalog client together into a class called CatalogClient
-    # Change the client to be that, and remove the caches from the state object
-
-    # Settings
+    # Setup the state of the app with various clients. Note, when running multiple threads, these will each have their own cache
     app.state.settings = settings
     app.state.catalog_client = catalog_client or CachedCatalogClient(settings=settings)
     app.state.k8s_clients = k8s_clients if k8s_clients else K8sClients(settings=settings)
     app.state.auth_client = auth_client if auth_client else CachedAuthClient(settings=settings)
+    # Add the routes
     app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
     app.include_router(sw2_rpc_router)
-
     # Middleware Do we need this?
     app.add_middleware(GZipMiddleware, minimum_size=1000)
-
+    # Instrumentation for prometheus metrics
     Instrumentator().instrument(app).expose(app)
 
     return app

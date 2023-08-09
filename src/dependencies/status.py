@@ -26,7 +26,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
         raise HTTPException(status_code=500, detail=e)
     except Exception as e:
         return CatalogModuleInfo(
-            url=f"No Valid URL Found, or possible programming error",
+            url=f"No Valid URL Found, or possible programming error {e}",
             version=git_commit,
             module_name=module_name,
             release_tags=[],
@@ -86,9 +86,7 @@ def get_dynamic_service_status_helper(request, module_name, version) -> DynamicS
 
     module_info = lookup_module_info(request=request, module_name=module_name, git_commit=version)  # type: 'CatalogModuleInfo'
 
-    deployment = query_k8s_deployment_status(
-        request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash
-    )  # type: 'V1Deployment'
+    deployment = query_k8s_deployment_status(request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash)  # type: 'V1Deployment'
     if deployment:
         return DynamicServiceStatus(
             url=module_info.url,

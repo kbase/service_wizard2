@@ -45,13 +45,9 @@ class CachedCatalogClient:
             self.module_info_cache.set(key=key, value=module_info)
         if require_dynamic_service:
             if "dynamic_service" not in module_info:
-                raise ValueError(
-                    "Specified module is not marked as a dynamic service. (" + module_info["module_name"] + "-" + module_info["git_commit_hash"] + ")"
-                )
+                raise ValueError("Specified module is not marked as a dynamic service. (" + module_info["module_name"] + "-" + module_info["git_commit_hash"] + ")")
             if module_info["dynamic_service"] != 1:
-                raise ValueError(
-                    "Specified module is not marked as a dynamic service. (" + module_info["module_name"] + "-" + module_info["git_commit_hash"] + ")"
-                )
+                raise ValueError("Specified module is not marked as a dynamic service. (" + module_info["module_name"] + "-" + module_info["git_commit_hash"] + ")")
         return module_info
 
     def list_service_volume_mounts(self, module_name: str, version: str) -> list[dict]:
@@ -68,9 +64,7 @@ class CachedCatalogClient:
         key = module_name + "-" + version
         mounts = self.module_volume_mount_cache.get(key=key, default=None)
         if not mounts:
-            mounts_list = self.cc.list_volume_mounts(
-                filter={"module_name": module_name, "version": version, "client_group": "service", "function_name": "service"}
-            )
+            mounts_list = self.cc.list_volume_mounts(filter={"module_name": module_name, "version": version, "client_group": "service", "function_name": "service"})
             mounts = []
             if len(mounts_list) > 0:
                 mounts = mounts_list[0]["volume_mounts"]

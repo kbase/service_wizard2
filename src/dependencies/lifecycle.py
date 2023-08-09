@@ -1,19 +1,17 @@
 import logging
 import re
 import traceback
-from pprint import pprint
 from typing import Dict, Tuple
 
 from fastapi import HTTPException
 from fastapi import Request
 from kubernetes.client import ApiException
 
-from src.configs.settings import Settings
+from src.configs.settings import Settings  # noqa: F401
 from src.dependencies.k8_wrapper import (
     create_and_launch_deployment,
     create_clusterip_service,
     update_ingress_to_point_to_service,
-    delete_deployment,
     scale_replicas,
 )
 from src.dependencies.status import get_service_status_with_retries, lookup_module_info
@@ -60,8 +58,8 @@ def get_volume_mounts(request, module_name, module_version):
 
 """
 Using Pods directly gives you fine-grained control over the individual containers,
- including their lifecycles, networking, and resource configurations. 
- However, keep in mind that managing Pods individually requires more manual effort for scaling, rolling updates, 
+ including their lifecycles, networking, and resource configurations.
+ However, keep in mind that managing Pods individually requires more manual effort for scaling, rolling updates,
  and self-healing compared to higher-level resources like Deployments.
 """
 

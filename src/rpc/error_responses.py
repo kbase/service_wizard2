@@ -23,6 +23,18 @@ def json_exception(exception: Exception) -> JSONRPCResponse:
     return JSONRPCResponse(id=None, error=ErrorResponse(message=f"{exception}", code=-32700, name="No JSON object could be decoded", error=None))
 
 
+def no_params_passed(method, jrpc_id):
+    return JSONRPCResponse(
+        id=jrpc_id,
+        error=ErrorResponse(
+            message=f"No params passed to method {method}",
+            code=-32602,
+            name="Invalid params",
+            error=None,
+        ),
+    )
+
+
 def not_enough_params(method, jrpc_id):
     return JSONRPCResponse(
         id=jrpc_id,
@@ -51,8 +63,7 @@ def no_authenticated_headers_passed(jrpc_id):
     return JSONRPCResponse(
         id=jrpc_id,
         error=ErrorResponse(
-            message="Token validation failed: Must supply token: Authentication required for ServiceWizard2 but no authentication header or "
-            "kbase_session cookie was passed",
+            message="Token validation failed: Must supply token: Authentication required for ServiceWizard2 but no authentication header or " "kbase_session cookie was passed",
             code=-32000,
             name="Server error",
             error=None,

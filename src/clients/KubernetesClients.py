@@ -5,6 +5,8 @@ from cacheout import LRUCache
 from kubernetes import config
 from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api
 
+from src.configs.settings import Settings
+
 
 class K8sClients:
     app_client: AppsV1Api
@@ -15,7 +17,7 @@ class K8sClients:
 
     def __init__(
         self,
-        settings: "Settings",
+        settings: Settings,
         k8s_core_client: Optional[CoreV1Api] = None,
         k8s_app_client: Optional[AppsV1Api] = None,
         k8s_network_client: Optional[NetworkingV1Api] = None,

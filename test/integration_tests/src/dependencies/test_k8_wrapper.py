@@ -1,23 +1,16 @@
-import json
-import os
 from unittest.mock import create_autospec
 
 import pytest
-import requests
 from cacheout import LRUCache
+from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from kubernetes import config, client
-from pykube import Pod
 from pytest_kind import KindCluster
-from requests.adapters import HTTPAdapter
-import requests_mock
 
+from dependencies.middleware import is_authorized
 from src.clients.CatalogClient import Catalog
 from src.configs.settings import get_settings
 from src.factory import create_app
-from dependencies.middleware import is_authorized
-
-from dotenv import load_dotenv
 
 
 @pytest.fixture(autouse=True)
@@ -113,15 +106,6 @@ def mock_catalog_client():
 
 
 @pytest.fixture
-def k8_api_client(kind_cluster):
-    kubeconfig_path = str(kind_cluster.kubeconfig_path)
-    config.load_kube_config(config_file=kubeconfig_path)
-
-    api_client = client.ApiClient()
-    yield api_client
-
-
-@pytest.fixture
 def v1_core_client(k8_api_client):
     v1_core = client.CoreV1Api(k8_api_client)
     yield v1_core
@@ -146,26 +130,6 @@ def app(kind_cluster, mock_catalog_client, v1_core_client, apps_v1_client):
     )
     app.dependency_overrides[is_authorized] = lambda: ...
     return app
-
-
-# def test_kubernetes_version(kind_cluster):
-#     assert kind_cluster.api.version == ("1", "25")
-#
-#
-# def test_namespace_and_pods(k8_api_client):
-#     v1_core = client.CoreV1Api(k8_api_client)
-#     namespace_name = get_settings().namespace
-#     namespace_exists = False
-#     try:
-#         v1_core.read_namespace(name=namespace_name)
-#         namespace_exists = True
-#     except client.ApiException as e:
-#         if e.status != 404:
-#             raise
-#     assert namespace_exists
-#     # Check if there are no pods in the namespace
-#     pods = v1_core.list_namespaced_pod(namespace=namespace_name).items
-#     assert len(pods) == 0
 
 
 @pytest.fixture
