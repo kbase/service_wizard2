@@ -18,9 +18,6 @@ router = APIRouter(
 )
 
 
-
-
-
 @router.get("/start/")
 def start(request: Request, module_name: str = Query(...), version: str = Query(...)) -> DynamicServiceStatus:
     """

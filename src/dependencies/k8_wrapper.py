@@ -318,7 +318,8 @@ def get_logs_for_first_pod_in_deployment(request, module_name, module_git_commit
 
     if pod_list.items:
         pod_name = pod_list.items[0].metadata.name
-        logs = get_k8s_core_client(request).read_namespaced_pod_log(name=pod_name, namespace=namespace)
+        logs = get_k8s_core_client(request).read_namespaced_pod_log(name=pod_name, namespace=namespace, timestamps=True).splitlines(keepends=True)
+        # Convert the string into a list of strings, but keep the "\n"
         return pod_name, logs
 
     return "No Logs Found", "No Logs Found"

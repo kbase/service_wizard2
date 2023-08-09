@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from pydantic import BaseModel, Field
 
@@ -14,8 +14,9 @@ class JSONRPCResponse(BaseModel):
     version: str = "1.0"
     id: Optional[int | str]
     error: Optional[ErrorResponse]
-    result: Optional[List[dict] | List[List[dict]] | List[str]] = Field(default_factory=lambda: None)
+    result: Any = None
 
+    # Optional[List[dict] | List[List[dict]] | List[str]] = Field(default_factory=lambda: None) doesn't seem to work
     def dict(self, *args, **kwargs):
         # Remove 'result' from the dictionary if it's None
         response_dict = super().dict(*args, **kwargs)

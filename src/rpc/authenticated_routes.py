@@ -29,6 +29,9 @@ def handle_request(
 
     try:
         result = action(request, module_name, module_version)
+        print("RESULT", result[0].keys())
+        json_result = JSONRPCResponse(id=jrpc_id, result=[result])
+        print("JSON_RESULT", json_result)
         return JSONRPCResponse(id=jrpc_id, result=[result])
     except ServerError as e:
         traceback_str = traceback.format_exc()
