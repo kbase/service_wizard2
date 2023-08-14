@@ -24,6 +24,7 @@ requests_mock = "==1.9.3"
 pre-commit = "==3.3.3"
 black = "==23.7.0"
 flake8 = "==6.1.0"
+pytest_kind = "==22.11.1"
 
 [requires]
 python_version = "3.11"
