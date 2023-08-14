@@ -16,15 +16,20 @@ def is_authorized(
         description="KBase auth token",
     ),
     kbase_session: str = Cookie(None, regex=ALPHANUMERIC_PATTERN),
-):
+) -> bool:
+    """
+    Check if the user is authorized to access the endpoint in general.
+    This does not check if the user is authorized to STOP or VIEW LOGS for specific services.
+    :param request: The request to check
+    :param authorization: The authorization header
+    :param kbase_session: The kbase_session cookie
+    :return: A boolean indicating if the user is authorized or not
+    """
     if not authorization and not kbase_session:
         raise HTTPException(
             status_code=400,
             detail="Please provide the 'Authorization' header or 'kbase_session' cookie",
         )
-
-    # Check to see if the token is valid and throw an exception if it isn't,
-    # but also throw a different exception if the auth service is down
     try:
         ac = request.app.state.auth_client  # type: CachedAuthClient
         return ac.is_authorized(token=authorization if authorization else kbase_session)

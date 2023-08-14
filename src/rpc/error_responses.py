@@ -3,18 +3,6 @@ from fastapi.responses import JSONResponse
 from src.rpc.models import ErrorResponse, JSONRPCResponse
 
 
-class ServiceWizardException(Exception):
-    pass
-
-
-class AuthError(ServiceWizardException):
-    pass
-
-
-class AuthInvalidTokenError(ServiceWizardException):
-    pass
-
-
 def method_not_found(method, jrpc_id) -> JSONRPCResponse:
     return JSONRPCResponse(id=jrpc_id, error=ErrorResponse(message=f"Method '{method}' not found", code=-32601, name="Method not found", error=None))
 

@@ -10,17 +10,17 @@ from src.rpc.models import JSONRPCResponse
 logging.basicConfig(level=logging.INFO)
 
 
-def start(request: Request, params: list[dict], jrpc_id: int) -> JSONRPCResponse:
+def start(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:
     return handle_rpc_request(request, params, jrpc_id, start_deployment)
 
 
-def stop(request: Request, params: list[dict], jrpc_id: int) -> JSONRPCResponse:
+def stop(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:
     return handle_rpc_request(request, params, jrpc_id, stop_deployment)
 
 
-def get_service_log(request: Request, params: list[dict], jrpc_id: int) -> JSONRPCResponse:
+def get_service_log(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:
     return handle_rpc_request(request, params, jrpc_id, logs.get_service_log)
 
 
-def get_service_log_web_socket(request: Request, params: list[dict], jrpc_id: int) -> JSONRPCResponse:
+def get_service_log_web_socket(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:
     return handle_rpc_request(request, params, jrpc_id, logs.get_service_log_web_socket)

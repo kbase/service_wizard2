@@ -4,11 +4,20 @@ from functools import lru_cache
 
 
 class EnvironmentVariableError(Exception):
+    """
+    Raised when an environment variable is not set.
+    """
+
     pass
 
 
 @dataclass
 class Settings:
+    """
+    A class to hold the settings for the service wizard.
+    Read more about these in the README.md file.
+    """
+
     admin_roles: list[str]
     auth_service_url: str
     auth_legacy_url: str
@@ -28,6 +37,10 @@ class Settings:
 
 @lru_cache(maxsize=None)
 def get_settings() -> Settings:
+    """
+    Get the settings for the service wizard. These are read from environment variables and then cached.
+    :return: A Settings object
+    """
     required_variables = [
         "NAMESPACE",
         "AUTH_SERVICE_URL",
@@ -62,6 +75,8 @@ def get_settings() -> Settings:
         raise EnvironmentVariableError("At least one admin role (KBASE_ADMIN_ROLE, CATALOG_ADMIN_ROLE, or SERVICE_WIZARD_ADMIN_ROLE) must be set in the .env file")
 
     # USE_INCLUSTER_CONFIG is a boolean that takes precedence over KUBECONFIG
+    # USE_INCLUSTER_CONFIG works when running in a k8s cluster
+    # KUBECONFIG works when running locally and is good for local development
     if "KUBECONFIG" not in os.environ and "USE_INCLUSTER_CONFIG" not in os.environ:
         raise EnvironmentVariableError("At least one of the environment variables 'KUBECONFIG' or 'USE_INCLUSTER_CONFIG' must be set")
 

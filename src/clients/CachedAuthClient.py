@@ -8,14 +8,18 @@ from src.configs.settings import Settings, get_settings
 
 
 class UserAuthRoles:
-    def __init__(self, username: str, user_roles: list[str], admin_roles: list[str]):
+    def __init__(self, username: str, user_roles: list[str], admin_roles: list[str], token: str):
         self.username = username
         self.user_roles = user_roles
         self.admin_roles = admin_roles
+        self.token = token
 
     @cached_property
     def is_admin(self) -> bool:
         return any(role in self.admin_roles for role in self.user_roles)
+
+    def is_admin_or_owner(self, owners: list[str]) -> bool:
+        return self.is_admin or self.username in owners
 
 
 class CachedAuthClient:
@@ -71,7 +75,7 @@ class CachedAuthClient:
         """
         # TODO Try catch validate errors, auth service URL is bad, etc
         username, roles = self.validate_and_get_username_roles(token)
-        return UserAuthRoles(username=username, user_roles=roles, admin_roles=self.admin_roles)
+        return UserAuthRoles(username=username, user_roles=roles, admin_roles=self.admin_roles, token=token)
 
     def validate_and_get_username_roles(self, token: str) -> tuple[str, list[str]]:
         """

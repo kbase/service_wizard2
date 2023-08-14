@@ -224,7 +224,7 @@ def create_and_launch_deployment(request, module_name, module_git_commit_hash, i
 
     toleration = V1Toleration(effect="NoSchedule", key=namespace, operator="Exists")
 
-    template = client.V1PodTemplateSpec(metadata=metadata, spec=client.V1PodSpec(containers=[container], volumes=volumes, tolerations=toleration))
+    template = client.V1PodTemplateSpec(metadata=metadata, spec=client.V1PodSpec(containers=[container], volumes=volumes, tolerations=[toleration]))
     selector = client.V1LabelSelector(match_labels={"us.kbase.module.module_name": module_name.lower(), "us.kbase.module.git_commit_hash": module_git_commit_hash})
     spec = client.V1DeploymentSpec(replicas=1, template=template, selector=selector)
     deployment = client.V1Deployment(api_version="apps/v1", kind="Deployment", metadata=metadata, spec=spec)

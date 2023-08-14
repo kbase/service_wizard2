@@ -15,6 +15,7 @@ class CatalogModuleInfo(BaseModel):
     module_name: str
     release_tags: List[str]
     git_commit_hash: str
+    owners: List[str]
 
 
 class ServiceHealth(Enum):

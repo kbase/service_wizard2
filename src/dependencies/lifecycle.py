@@ -19,15 +19,23 @@ from src.models.models import DynamicServiceStatus
 
 
 class ServiceAlreadyExistsException(HTTPException):
+    """
+    Exception to be raised when a service already exists.
+    """
+
     pass
 
 
 def get_env(request, module_name, module_version) -> Dict[str, str]:
     """
     Get the environment variables for a module and set it up for the container to use.
-    :param request:
-    :param module_name:
-    :param module_version:
+    By default, the KBase endpoint and auth service URLs are set.
+    In addition, the secure config params are set as environment variables which are prefixed with KBASE_SECURE_CONFIG_PARAM_ and
+    are retrieved from the KBase Catalog.
+
+    :param request: The request object
+    :param module_name: The module name
+    :param module_version: The module version, normalization not required
     :return: A map of environment variables to be used by the container.
     """
     settings = request.app.state.settings  # type: Settings
@@ -36,9 +44,7 @@ def get_env(request, module_name, module_version) -> Dict[str, str]:
         "AUTH_SERVICE_URL": settings.auth_legacy_url,
         "AUTH_SERVICE_URL_ALLOW_INSECURE": "false",
     }
-
     secure_param_list = request.app.state.catalog_client.get_secure_params(module_name, module_version)
-
     for secure_param in secure_param_list:
         param_name = secure_param["param_name"]
         param_value = secure_param["param_value"]
@@ -47,6 +53,13 @@ def get_env(request, module_name, module_version) -> Dict[str, str]:
 
 
 def get_volume_mounts(request, module_name, module_version):
+    """
+    Get the volume mounts from the KBase Catalog for a module and set it up for the container to use.
+    :param request:  The request object
+    :param module_name:  The module name
+    :param module_version:  The module version, normalization not required
+    :return:
+    """
     volume_mounts = request.app.state.catalog_client.list_service_volume_mounts(module_name, module_version)
     if len(volume_mounts) > 0:
         mounts = []
@@ -56,16 +69,10 @@ def get_volume_mounts(request, module_name, module_version):
         return mounts
 
 
-"""
-Using Pods directly gives you fine-grained control over the individual containers,
- including their lifecycles, networking, and resource configurations.
- However, keep in mind that managing Pods individually requires more manual effort for scaling, rolling updates,
- and self-healing compared to higher-level resources like Deployments.
-"""
-
-
-def _setup_metdata(module_name, requested_module_version, git_commit_hash, version, git_url) -> Tuple[Dict, Dict]:
+def _setup_metadata(module_name, requested_module_version, git_commit_hash, version, git_url) -> Tuple[Dict, Dict]:
     """
+    Convenience method to set up the labels and annotations for a deployment.
+
     :param module_name: Module name that comes from the web request
     :param requested_module_version: Module version that comes from the web request
     :param git_commit_hash: Hash that comes from KBase Catalog
@@ -101,6 +108,13 @@ def _create_and_launch_deployment_helper(
     mounts: list[str],
     request: Request,
 ):
+    """
+    Helper method to create and launch a deployment.
+    It will attempt to create the deployment and if it already exists, it will log a warning and continue.
+    It will return True if it already exists
+    Else, it will implicitly return None
+    :return:
+    """
     try:
         create_and_launch_deployment(
             request=request,
@@ -123,6 +137,10 @@ def _create_and_launch_deployment_helper(
 
 
 def _create_cluster_ip_service_helper(request, module_name, catalog_git_commit_hash, labels):
+    """
+    Helper method to create a cluster IP service for a deployment.
+    It will attempt to create the service and if it already exists, it will log a warning and continue.
+    """
     try:
         create_clusterip_service(request, module_name, catalog_git_commit_hash, labels)
     except ApiException as e:
@@ -134,6 +152,10 @@ def _create_cluster_ip_service_helper(request, module_name, catalog_git_commit_h
 
 
 def _update_ingress_for_service_helper(request, module_name, git_commit_hash):
+    """
+    Helper method to update the ingress for a service.
+    It will attempt to update the ingress and if it already exists, it will log a warning and continue.
+    """
     try:
         update_ingress_to_point_to_service(request, module_name, git_commit_hash)
     except ApiException as e:
@@ -145,10 +167,22 @@ def _update_ingress_for_service_helper(request, module_name, git_commit_hash):
 
 
 def start_deployment(request: Request, module_name, module_version, replicas=1) -> DynamicServiceStatus:
-    logging.info("BEGIN")
+    """
+    Start a deployment for a given module name and version.
+    Then create a service and ingress for it.
+    Then return the status of the deployment.
 
-    module_info = request.app.state.catalog_client.get_module_info(module_name, module_version, require_dynamic_service=True)
-    labels, annotations = _setup_metdata(
+    If the deployment already exists, it will attempt to scale it up to the requested number of replicas, but it is always 1 replica at the moment.
+
+    :param request:  The request object
+    :param module_name:  The module name
+    :param module_version:  The module version, normalization not required
+    :param replicas: Number of replicas to start, no way to set it from the API at the moment.
+    :return:
+    """
+
+    module_info = request.app.state.catalog_client.get_combined_module_info(module_name, module_version)
+    labels, annotations = _setup_metadata(
         module_name=module_name,
         requested_module_version=module_version,
         git_commit_hash=module_info["git_commit_hash"],
@@ -159,7 +193,6 @@ def start_deployment(request: Request, module_name, module_version, replicas=1) 
     mounts = get_volume_mounts(request, module_name, module_version)
     env = get_env(request, module_name, module_version)
 
-    print("About to launch deployment")
     deployment_already_exists = _create_and_launch_deployment_helper(
         annotations=annotations,
         env=env,
@@ -170,10 +203,9 @@ def start_deployment(request: Request, module_name, module_version, replicas=1) 
         mounts=mounts,
         request=request,
     )
+
     if deployment_already_exists:
-        print("Deployment exists, attempting to scale")
         scale_replicas(request=request, module_name=module_name, module_git_commit_hash=module_info["git_commit_hash"], replicas=replicas)
-        print("Done scaling")
 
     _create_cluster_ip_service_helper(request, module_name, module_info["git_commit_hash"], labels)
     _update_ingress_for_service_helper(request, module_name, module_info["git_commit_hash"])
@@ -182,8 +214,22 @@ def start_deployment(request: Request, module_name, module_version, replicas=1) 
 
 
 def stop_deployment(request: Request, module_name, module_version) -> DynamicServiceStatus:
+    """
+    Stop a deployment for a given module name and version. This will scale the deployment down to 0 replicas.
+    It does not delete the deployment, service or ingress.
+
+    :param request: The request object
+    :param module_name:  The module name
+    :param module_version:  The module version, normalization not required
+    :return:
+    """
+    # TODO Do we need to add logic here to make sure you are an owner or admin before you are able to stop it?
     module_info = lookup_module_info(request, module_name, module_version)
-    deployment = scale_replicas(request=request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash, replicas=0)
+    if request.state.user_auth_roles.is_admin_or_owner(module_info.owners):
+        deployment = scale_replicas(request=request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash, replicas=0)
+    else:
+        raise HTTPException(status_code=403, detail="You are not allowed to stop this deployment")
+
     return DynamicServiceStatus(
         url=module_info.url,
         version=module_info.version,

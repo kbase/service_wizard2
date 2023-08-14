@@ -49,7 +49,7 @@ def create_app(
         settings = get_settings()
     app = FastAPI(root_path=settings.root_path)  # type: FastAPI
 
-    # Setup the state of the app with various clients. Note, when running multiple threads, these will each have their own cache
+    # Set up the state of the app with various clients. Note, when running multiple threads, these will each have their own cache
     app.state.settings = settings
     app.state.catalog_client = catalog_client or CachedCatalogClient(settings=settings)
     app.state.k8s_clients = k8s_clients if k8s_clients else K8sClients(settings=settings)
