@@ -76,7 +76,7 @@ def mock_catalog_client():
         "git_url": "https://github.com/kbaseapps/NarrativeService",
         "release_tags": ["release", "beta", "dev"],
     }
-    cc.get_module_info.return_value = cc_result
+    cc.get_combined_module_info.return_value = cc_result
     cc.get_secure_config_params.return_value = [
         {
             "module_name": "NarrativeService",
