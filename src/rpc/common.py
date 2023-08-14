@@ -13,7 +13,6 @@ from src.rpc.error_responses import (
     token_validation_failed,
     json_rpc_response_to_exception,
     no_params_passed,
-    not_enough_params,
 )
 from src.rpc.models import ErrorResponse, JSONRPCResponse
 
@@ -105,8 +104,6 @@ def handle_rpc_request(
     module_name = service.get("module_name", params.get("module_name"))
     module_version = service.get("version", params.get("version"))
 
-    if not module_name or not module_version:
-        return not_enough_params(method=method_name, jrpc_id=jrpc_id)
     try:
         result = action(request, module_name, module_version)
         return JSONRPCResponse(id=jrpc_id, result=[result])
