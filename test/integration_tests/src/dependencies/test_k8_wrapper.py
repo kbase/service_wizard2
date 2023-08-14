@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from kubernetes import config, client
 from pytest_kind import KindCluster
 
-from dependencies.middleware import is_authorized
+from src.dependencies.middleware import is_authorized
 from src.clients.CatalogClient import Catalog
 from src.configs.settings import get_settings
 from src.factory import create_app
