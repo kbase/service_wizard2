@@ -2,7 +2,7 @@ from typing import List, Any
 
 from fastapi.requests import Request
 
-from clients.baseclient import ServerError
+from src.clients.baseclient import ServerError
 from src.dependencies.k8_wrapper import get_logs_for_first_pod_in_deployment
 from src.dependencies.status import lookup_module_info
 from src.rpc.models import JSONRPCResponse

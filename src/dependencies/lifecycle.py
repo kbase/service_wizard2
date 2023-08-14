@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from fastapi import Request
 from kubernetes.client import ApiException
 
-from clients.baseclient import ServerError
+from src.clients.baseclient import ServerError
 from src.configs.settings import Settings  # noqa: F401
 from src.dependencies.k8_wrapper import (
     create_and_launch_deployment,
