@@ -11,6 +11,8 @@ Dynamic services are responsible for providing  data and/or UI components for th
 * Doesn't completely support multiple replicas for now.
 * Doesn't support volumes, only bind mounts
 * Doesn't yet support forcing a dynamic service to land on a specific host (e.g. staticnarrative service, htmlfilsetservice) or define behavior for multiple replicas on specific hosts
+* If the catalog admin is not valid, you get an authentication error, but its not clear that its the auth token from the service rather than from the user request
+
 
 # Environment Variables
 

@@ -18,28 +18,47 @@ from src.rpc.error_responses import (
 from src.rpc.models import ErrorResponse, JSONRPCResponse
 
 
+class AuthException(Exception):
+    pass
+
+
+class AuthServiceException(Exception):
+    pass
+
+
 def validate_rpc_request(body):
-    json_data = json.loads(body.decode("utf-8"))
+    """
+    Validate the JSON-RPC request body to ensure methods and params are present and of the correct type.
+    :param body: The JSON-RPC request body
+    :return: The method, params, and jrpc_id which is set to 0 if not provided
+    """
+    try:
+        json_data = json.loads(body.decode("utf-8"))
+    except json.JSONDecodeError:
+        raise ServerError(
+            message=f"Parse error JSON format. Invalid JSON was received by the server. An error occurred on the server while parsing the " f"JSON text.. got {type(body)}",
+            code=-32700,
+            name="Parse error",
+        )
 
     if not isinstance(json_data, dict):
-        raise ValueError(f"Invalid JSON format, got {type(json_data)}")
-        # TODO: This should actually return
-        # -32600: Invalid Request - The JSON sent is not a valid Request object.
-        # -32700: Parse error - Invalid JSON was received by the server. An error occurred on the server while parsing the JSON text.
+        raise ServerError(message=f"Invalid Request - The JSON sent is not a valid Request object. {json_data} ", code=-32600, name="Invalid Request")
 
     method = json_data.get("method")
     params = json_data.get("params")
-    # We don't actually care about the jrpc_id
     jrpc_id = json_data.get("id", 0)
 
     if not isinstance(method, str) or not isinstance(params, list):
-        raise ValueError(
-            f"Invalid JSON-RPC request format {type(method)} {type(params)}",
-        )
+        raise ServerError(message=f"`method` must be a valid SW1 method string. Params must be a dictionary. {json_data}", code=-32600, name="Invalid Request")
     return method, params, jrpc_id
 
 
 def validate_rpc_response(response: JSONRPCResponse):
+    """
+    Validate the JSON-RPC response to ensure that either the error or result is present, but not both.
+    :param response: The JSON-RPC response
+    :return: The response if valid, otherwise an HTTPException
+    """
     try:
         assert isinstance(response, JSONRPCResponse)
         if (response.error is None and response.result is None) or (response.error is not None and response.result is not None):
@@ -67,14 +86,6 @@ def rpc_auth(request: Request, jrpc_id: str) -> UserAuthRoles:
 
     ac = request.app.state.auth_client  # type: CachedAuthClient
     return ac.get_user_auth_roles(token=token)
-
-
-class AuthException(Exception):
-    pass
-
-
-class AuthServiceException(Exception):
-    pass
 
 
 def handle_rpc_request(

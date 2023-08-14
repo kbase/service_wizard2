@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from fastapi import Request
 from kubernetes.client import ApiException
 
+from clients.baseclient import ServerError
 from src.configs.settings import Settings  # noqa: F401
 from src.dependencies.k8_wrapper import (
     create_and_launch_deployment,
@@ -228,7 +229,7 @@ def stop_deployment(request: Request, module_name, module_version) -> DynamicSer
     if request.state.user_auth_roles.is_admin_or_owner(module_info.owners):
         deployment = scale_replicas(request=request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash, replicas=0)
     else:
-        raise HTTPException(status_code=403, detail="You are not allowed to stop this deployment")
+        raise ServerError(code=-32000, message="Only admins or module owners can stop dynamic services", name="Server Error")
 
     return DynamicServiceStatus(
         url=module_info.url,

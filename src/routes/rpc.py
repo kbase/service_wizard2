@@ -17,18 +17,25 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+# No KBase Token Required
 unauthenticated_routes_mapping = {
     "ServiceWizard.list_service_status": unauthenticated_routes.list_service_status,
     "ServiceWizard.status": unauthenticated_routes.status,
     "ServiceWizard.version": unauthenticated_routes.version,
     "ServiceWizard.get_service_status_without_restart": unauthenticated_routes.get_service_status_without_restart,
 }
-authenticated_routes_mapping = {
+# Valid KBase Token Required
+kbase_token_required = {
     "ServiceWizard.start": authenticated_routes.start,
     "ServiceWizard.get_service_status": authenticated_routes.start,
-    "ServiceWizard.stop": authenticated_routes.stop,
-    "ServiceWizard.get_service_log": authenticated_routes.get_service_log,
 }
+# Valid KBase Token and Admin or username in [owners] in kbase.yaml required
+admin_or_owner_required = {
+    "ServiceWizard.get_service_log": authenticated_routes.get_service_log,
+    "ServiceWizard.stop": authenticated_routes.stop,
+}
+
+authenticated_routes_mapping = {**kbase_token_required, **admin_or_owner_required}
 
 # Combine the dictionaries
 known_methods = {**unauthenticated_routes_mapping, **authenticated_routes_mapping}
