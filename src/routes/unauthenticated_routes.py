@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request
 
+from src.dependencies.status import get_version, get_status
 from src.configs.settings import Settings  # noqa: F401
 
 router = APIRouter(
@@ -10,18 +11,10 @@ router = APIRouter(
 
 @router.get("/status")
 @router.get("/")
-async def status(request: Request):
-    settings = request.app.state.settings  # type: Settings
-    return [
-        {
-            "state": "OK",
-            "message": "Post requests should be sent here or to /rpc",
-            "git_url": settings.git_url,
-            "git_commit_hash": settings.vcs_ref,
-        }
-    ]
+def status(request: Request):
+    return get_status(request)
 
 
 @router.get("/version")
-async def version(request: Request):
-    return [request.app.state.settings.version]
+def version(request: Request):
+    return get_version(request)

@@ -17,5 +17,5 @@ def status(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCRespons
     return handle_rpc_request(request, params, jrpc_id, get_status)
 
 
-async def version(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:
+def version(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:
     return handle_rpc_request(request, params, jrpc_id, get_version)
