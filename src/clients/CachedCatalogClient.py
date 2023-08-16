@@ -17,6 +17,12 @@ def get_module_name_hash(module_name: str = None):
     return hashlib.md5(module_name.encode()).hexdigest()[:20]
 
 
+def _get_key(module_name: str, version: str = "release") -> str:
+    if version is None:
+        version = "release"
+    return module_name + "-" + version
+
+
 class CachedCatalogClient:
     module_info_cache = LRUCache(ttl=10)
     module_volume_mount_cache = LRUCache(ttl=10)
@@ -41,7 +47,7 @@ class CachedCatalogClient:
         :param version:       The version of the module.
         :return: The module info from the KBase Catalog
         """
-        key = module_name + "-" + version
+        key = _get_key(module_name, version)
         combined_module_info = self.module_info_cache.get(key=key, default=None)
         if not combined_module_info:
             combined_module_info = self.cc.get_module_version({"module_name": module_name, "version": version})
@@ -59,7 +65,7 @@ class CachedCatalogClient:
         :param version: The version of the module.
         :return: A list of volume mounts for the service.
         """
-        key = module_name + "-" + version
+        key = _get_key(module_name, version)
         mounts = self.module_volume_mount_cache.get(key=key, default=None)
         if not mounts:
             mounts_list = self.cc.list_volume_mounts(filter={"module_name": module_name, "version": version, "client_group": "service", "function_name": "service"})
@@ -76,7 +82,7 @@ class CachedCatalogClient:
         :param version: The version of the module.
         :return: A dictionary of secure config parameters for the module.
         """
-        key = module_name + "-" + version
+        key = _get_key(module_name, version)
         secure_config_params = self.secure_config_cache.get(key=key, default=None)
         if not secure_config_params:
             secure_config_params = self.cc.get_secure_config_params({"module_name": module_name, "version": version})

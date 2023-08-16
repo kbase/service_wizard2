@@ -181,7 +181,7 @@ def start_deployment(request: Request, module_name, module_version, replicas=1) 
     :param replicas: Number of replicas to start, no way to set it from the API at the moment.
     :return:
     """
-    print("GOT HERE")
+
     module_info = request.app.state.catalog_client.get_combined_module_info(module_name, module_version)
     labels, annotations = _setup_metadata(
         module_name=module_name,
@@ -193,7 +193,7 @@ def start_deployment(request: Request, module_name, module_version, replicas=1) 
 
     mounts = get_volume_mounts(request, module_name, module_version)
     env = get_env(request, module_name, module_version)
-    print("GOT HERE")
+
     deployment_already_exists = _create_and_launch_deployment_helper(
         annotations=annotations,
         env=env,
@@ -207,11 +207,10 @@ def start_deployment(request: Request, module_name, module_version, replicas=1) 
 
     if deployment_already_exists:
         scale_replicas(request=request, module_name=module_name, module_git_commit_hash=module_info["git_commit_hash"], replicas=replicas)
-    print("GOT HERE")
+
     _create_cluster_ip_service_helper(request, module_name, module_info["git_commit_hash"], labels)
     _update_ingress_for_service_helper(request, module_name, module_info["git_commit_hash"])
 
-    print("GOT HERE")
     return get_service_status_with_retries(request, module_name, module_version)
 
 
