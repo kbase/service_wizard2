@@ -5,10 +5,9 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 
 from src.rpc import authenticated_routes, unauthenticated_routes
-from src.rpc.common import validate_rpc_request, rpc_auth, AuthException, AuthServiceException
+from src.rpc.common import validate_rpc_request, rpc_auth
 from src.rpc.error_responses import (
     method_not_found,
-    json_exception,
 )
 from src.rpc.models import JSONRPCResponse
 
@@ -49,20 +48,13 @@ async def get_body(request: Request):
 @router.post("/rpc/", response_model=None)
 @router.post("/", response_model=None)
 def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HTTPException | JSONRPCResponse | JSONResponse:
-    try:
-        method, params, jrpc_id = validate_rpc_request(body)
-    except Exception as e:
-        return JSONResponse(content=jsonable_encoder(json_exception(e)), status_code=500)
-
+    method, params, jrpc_id = validate_rpc_request(body)
     request_function: Callable = known_methods.get(method)
     if request_function is None:
         return method_not_found(method=method, jrpc_id=jrpc_id)
 
     if request_function in authenticated_routes_mapping.values():
-        try:
-            request.state.user_auth_roles = rpc_auth(request, jrpc_id)
-        except (AuthException, AuthServiceException) as e:
-            return JSONResponse(content=jsonable_encoder(json_exception(e)), status_code=500)
+        request.state.user_auth_roles = rpc_auth(request, jrpc_id)
 
     valid_response = request_function(request, params, jrpc_id)  # type:JSONRPCResponse
     converted_response = jsonable_encoder(valid_response)

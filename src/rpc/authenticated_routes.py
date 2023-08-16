@@ -11,6 +11,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 def start(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:
+    print("GOT HERE")
     return handle_rpc_request(request, params, jrpc_id, start_deployment)
 
 

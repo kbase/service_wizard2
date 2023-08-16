@@ -9,7 +9,6 @@ from src.clients.CachedAuthClient import UserAuthRoles, CachedAuthClient  # noqa
 from src.clients.baseclient import ServerError
 from src.dependencies.middleware import is_authorized
 from src.rpc.error_responses import (
-    no_authenticated_headers_passed,
     token_validation_failed,
     json_rpc_response_to_exception,
     no_params_passed,
@@ -43,8 +42,8 @@ def validate_rpc_request(body):
     if not isinstance(json_data, dict):
         raise ServerError(message=f"Invalid Request - The JSON sent is not a valid Request object. {json_data} ", code=-32600, name="Invalid Request")
 
-    method = json_data.get("method")
-    params = json_data.get("params")
+    method = json_data.get("method", "")
+    params = json_data.get("params", [])
     jrpc_id = json_data.get("id", 0)
 
     if not isinstance(method, str) or not isinstance(params, list):
@@ -72,19 +71,13 @@ def rpc_auth(request: Request, jrpc_id: str) -> UserAuthRoles:
     authorization = request.headers.get("Authorization")
     kbase_session = request.cookies.get("kbase_session")
 
-    # If no authorization provided, raise exception
-    if not authorization and not kbase_session:
-        raise AuthException(json_rpc_response_to_exception(no_authenticated_headers_passed(jrpc_id)))
-
-    token = authorization or kbase_session
-
     # Call the authenticated_user function
     authorized = is_authorized(request=request, kbase_session=kbase_session, authorization=authorization)
     if not authorized:
         raise AuthException(json_rpc_response_to_exception(token_validation_failed(jrpc_id)))
 
     ac = request.app.state.auth_client  # type: CachedAuthClient
-    return ac.get_user_auth_roles(token=token)
+    return ac.get_user_auth_roles(token=authorization or kbase_session)
 
 
 def handle_rpc_request(
