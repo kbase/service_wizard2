@@ -1,54 +1,99 @@
 import os
+from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any
-
-from pydantic import BaseSettings
 
 
 class EnvironmentVariableError(Exception):
+    """
+    Raised when an environment variable is not set.
+    """
+
     pass
 
 
-class Settings(BaseSettings):
-    namespace: str
-    auth_service_url: str
-    kbase_endpoint: str
-    catalog_url: str
-    catal_admin_token: str
-    kubeconfig: str
+@dataclass
+class Settings:
+    """
+    A class to hold the settings for the service wizard.
+    Read more about these in the README.md file.
+    """
+
     admin_roles: list[str]
+    auth_service_url: str
+    auth_legacy_url: str
+    catalog_admin_token: str
+    catalog_url: str
+    external_ds_url: str
+    external_sw_url: str
+    git_url: str
+    kbase_root_endpoint: str
+    kbase_services_endpoint: str
+    kubeconfig: str
+    namespace: str
+    root_path: str
+    use_incluster_config: bool
+    vcs_ref: str
 
-    def __init__(self, **values: Any):
-        required_variables = [
-            "NAMESPACE",
-            "AUTH_SERVICE_URL",
-            "KBASE_ENDPOINT",
-            "CATALOG_URL",
-            "CATALOG_ADMIN_TOKEN",
-            "KUBECONFIG",
-            "KBASE_ADMIN_ROLE",
-            "CATALOG_ADMIN_ROLE",
-            "SERVICE_WIZARD_ROLE"
-        ]
 
-        for var in required_variables:
-            value = os.environ.get(var)
-            if not value:
-                raise EnvironmentVariableError(f"{var} is not set in the .env file")
-            setattr(self, var.lower(), value)
+@lru_cache(maxsize=None)
+def get_settings() -> Settings:
+    """
+    Get the settings for the service wizard. These are read from environment variables and then cached.
+    :return: A Settings object
+    """
+    required_variables = [
+        "NAMESPACE",
+        "AUTH_SERVICE_URL",
+        "AUTH_LEGACY_URL",
+        "CATALOG_URL",
+        "CATALOG_ADMIN_TOKEN",
+        "EXTERNAL_SW_URL",
+        "EXTERNAL_DS_URL",
+        "ROOT_PATH",
+        "KBASE_ROOT_ENDPOINT",
+        "KBASE_SERVICES_ENDPOINT",
+    ]
 
-        self.admin_roles = [
+    # Treat all variables as strings
+    for var in required_variables:
+        value = os.environ.get(var)
+        if not value:
+            raise EnvironmentVariableError(f"{var} is not set in the .env file")
+
+    admin_roles = [
+        role
+        for role in [
             os.environ.get("KBASE_ADMIN_ROLE"),
             os.environ.get("CATALOG_ADMIN_ROLE"),
-            os.environ.get("SERVICE_WIZARD_ROLE")
+            os.environ.get("SERVICE_WIZARD_ADMIN_ROLE"),
         ]
-        if not all(self.admin_roles):
-            raise EnvironmentVariableError(
-                "KBASE_ADMIN_ROLE, CATALOG_ADMIN_ROLE, or SERVICE_WIZARD_ROLE is not set in the .env file")
+        if role
+    ]
 
-        super().__init__(**values)
+    # At least one required admin role must be set
+    if len(admin_roles) == 0:
+        raise EnvironmentVariableError("At least one admin role (KBASE_ADMIN_ROLE, CATALOG_ADMIN_ROLE, or SERVICE_WIZARD_ADMIN_ROLE) must be set in the .env file")
 
+    # USE_INCLUSTER_CONFIG is a boolean that takes precedence over KUBECONFIG
+    # USE_INCLUSTER_CONFIG works when running in a k8s cluster
+    # KUBECONFIG works when running locally and is good for local development
+    if "KUBECONFIG" not in os.environ and "USE_INCLUSTER_CONFIG" not in os.environ:
+        raise EnvironmentVariableError("At least one of the environment variables 'KUBECONFIG' or 'USE_INCLUSTER_CONFIG' must be set")
 
-@lru_cache()
-def get_settings() -> Settings:
-    return Settings()
+    return Settings(
+        admin_roles=admin_roles,
+        auth_service_url=os.environ.get("AUTH_SERVICE_URL"),
+        auth_legacy_url=os.environ.get("AUTH_LEGACY_URL"),
+        catalog_admin_token=os.environ.get("CATALOG_ADMIN_TOKEN"),
+        catalog_url=os.environ.get("CATALOG_URL"),
+        external_ds_url=os.environ.get("EXTERNAL_DS_URL"),
+        external_sw_url=os.environ.get("EXTERNAL_SW_URL"),
+        git_url="https://github.com/kbase/service_wizard2",
+        kbase_root_endpoint=os.environ.get("KBASE_ROOT_ENDPOINT"),
+        kbase_services_endpoint=os.environ.get("KBASE_SERVICES_ENDPOINT"),
+        kubeconfig=os.environ.get("KUBECONFIG"),
+        namespace=os.environ.get("NAMESPACE"),
+        root_path=os.environ.get("ROOT_PATH"),
+        use_incluster_config=os.environ.get("USE_INCLUSTER_CONFIG", "").lower() == "true",
+        vcs_ref=os.environ.get("GIT_COMMIT_HASH"),
+    )
