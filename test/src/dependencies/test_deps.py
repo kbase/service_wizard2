@@ -1,11 +1,10 @@
-import json
-
 import pytest
+import requests_mock
 from cacheout import LRUCache
 from fastapi.testclient import TestClient
+
 from src.configs.settings import get_settings
 from src.factory import create_app
-import requests_mock
 
 
 @pytest.fixture
@@ -77,7 +76,7 @@ def test_get_service_log(client_with_authorization, auth_service_mock):
 def test_missing_auth(client):
     response = client.get("/get_service_log/123/123")
     assert response.status_code == 400
-    assert response.json() == {"detail": "Please provide the 'Authorization' header or 'kbase_session_cookie'"}
+    assert response.json() == {"detail": "Please provide the 'Authorization' header or 'kbase_session' cookie"}
 
 
 def test_successful_authentication(client_with_authorization, auth_service_mock):

@@ -7,7 +7,6 @@ name = "pypi"
 fastapi = "==0.95.2"
 uvicorn = {version = "==0.22.0", extras = ["standard"]}
 sentry-sdk = "==1.25.0"
-#{version = "==23.5.2", extras = ["fastapi"]}
 PySocks = "==1.7.1"
 requests = "==2.31.0"
 prometheus-fastapi-instrumentator =  "==6.0.0"
@@ -18,11 +17,14 @@ python-dotenv = "==0.19.1"
 httpx = "==0.24.1"
 kubernetes = "==26.1.0"
 
-
 [dev-packages]
 pytest = "==7.3.1"
 pytest-cov = "==4.0.0"
 requests_mock = "==1.9.3"
+pre-commit = "==3.3.3"
+black = "==23.7.0"
+flake8 = "==6.1.0"
+pytest_kind = "==22.11.1"
 
 [requires]
 python_version = "3.11"

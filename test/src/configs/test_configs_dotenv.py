@@ -1,9 +1,9 @@
 import os
-from unittest.mock import patch
-import pytest
 
-from src.configs.settings import EnvironmentVariableError, get_settings, Settings
+import pytest
 from dotenv import load_dotenv
+
+from src.configs.settings import EnvironmentVariableError, get_settings
 
 
 def test_missing_roles_and_clear_settings_cache():

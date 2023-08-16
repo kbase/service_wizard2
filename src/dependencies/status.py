@@ -1,94 +1,180 @@
-
-from typing import List
+import logging
+import time
+from typing import List, Dict
 
 from fastapi import Request, HTTPException
 
+from src.clients.baseclient import ServerError
 from src.configs.settings import get_settings
+from src.dependencies.k8_wrapper import query_k8s_deployment_status, get_k8s_deployments, DuplicateLabelsException
 from src.models.models import DynamicServiceStatus, CatalogModuleInfo
-from src.dependencies.catalog_wrapper import get_hash_to_name_mapping, get_get_module_version
-from src.dependencies.k8_wrapper import get_all_pods
-import logging
+
 
 def lookup_module_info(request: Request, module_name: str, git_commit: str) -> CatalogModuleInfo:
     """
-    Retrieve information about a module from the catalog.
+    Retrieve information about a module from the KBase Catalog.
 
     :param request: The request object used to retrieve module information.
     :param module_name: The name of the module.
-    :param git_commit:The Git commit hash of the module.
-    :return:
+    :param git_commit: The Git commit hash of the module. This does not need to be normalized.
+    :return: The module information.
     """
+    settings = request.app.state.settings
     try:
-        logging.info(f"Looking up module_name{module_name} and git_commit{git_commit}")
-        mv = get_get_module_version(request, module_name, git_commit)
+        m_info = request.app.state.catalog_client.get_combined_module_info(module_name, git_commit)
+    except ServerError as e:
+        raise HTTPException(status_code=500, detail=e)
     except Exception as e:
-        print(f"Looking up module_name{module_name} and git_commit{git_commit} failed with error {e}")
         return CatalogModuleInfo(
-            # TODO GET URL FROM THE SERVICE INSTEAD OF GUESSING IT?
-            url=f"No Valid URL Found",
+            url=f"No Valid URL Found, or possible programming error {e}",
             version=git_commit,
             module_name=module_name,
             release_tags=[],
             git_commit_hash=git_commit,
+            owners=["Unknown"],
+        )
+    return CatalogModuleInfo(
+        # Need to sync this URL with kubernetes methods
+        url=f"{settings.external_ds_url}/{m_info['module_name']}.{m_info['git_commit_hash']}",
+        version=m_info["version"],
+        module_name=m_info["module_name"],
+        release_tags=m_info["release_tags"],
+        git_commit_hash=m_info["git_commit_hash"],
+        owners=m_info["owners"],
+    )
+
+
+def get_service_status_without_retries(request, module_name, version) -> DynamicServiceStatus:
+    """
+    Convenience method to get the service status without retries.
+    """
+    return get_service_status_with_retries(request, module_name, version, retries=0)
+
+
+def get_service_status_with_retries(request, module_name, version, retries=10) -> DynamicServiceStatus:
+    """
+    Retrieve the status of a service based on the module version and git commit hash.
+    First check the catalog, and cache the results, then check kubernetes.
+    :param request:
+    :param module_name:
+    :param version:
+    :param retries:
+    :return:
+    """
+    # Validate request in catalog first
+    lookup_module_info(request=request, module_name=module_name, git_commit=version)  # type: 'CatalogModuleInfo'
+    # Then check kubernetes
+    for _ in range(retries):
+        try:
+            status = get_dynamic_service_status_helper(request, module_name, version)
+            # The deployment is up
+            if status.up == 1:
+                return status
+            # The deployment is stopped
+            if status.replicas == 0:
+                return status
+        except ServerError as e:
+            raise HTTPException(status_code=500, detail=e)
+        except DuplicateLabelsException:
+            raise HTTPException(status_code=500, detail="Duplicate labels found in deployment, an admin screwed something up!")
+        except Exception:
+            # The deployment had more than one replica, but not even one was ready
+            pass
+        time.sleep(2)
+
+    raise Exception("Failed to get service status after maximum retries")
+
+
+def get_dynamic_service_status_helper(request, module_name, version) -> DynamicServiceStatus:
+    """
+    Retrieve the status of a service based on the module version and git commit hash.
+    :param request: The request object used to retrieve module information.
+    :param version:
+    :param module_name:
+
+    :return: The service status.
+    """
+
+    module_info = lookup_module_info(request=request, module_name=module_name, git_commit=version)  # type: 'CatalogModuleInfo'
+
+    deployment = query_k8s_deployment_status(request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash)  # type: 'V1Deployment'
+    if deployment:
+        return DynamicServiceStatus(
+            url=module_info.url,
+            version=module_info.version,
+            module_name=module_info.module_name,
+            release_tags=module_info.release_tags,
+            git_commit_hash=module_info.git_commit_hash,
+            deployment_name=deployment.metadata.name,
+            replicas=deployment.spec.replicas,
+            updated_replicas=deployment.status.updated_replicas,
+            ready_replicas=deployment.status.ready_replicas,
+            available_replicas=deployment.status.available_replicas,
+            unavailable_replicas=deployment.status.unavailable_replicas,
         )
 
-    module_info = CatalogModuleInfo(
-        # TODO GET URL FROM THE SERVICE INSTEAD OF GUESSING IT?
-        url=f"{get_settings().kbase_endpoint}/services/dynserv/{git_commit}.{module_name}",
-        version=mv["version"],
-        module_name=mv["module_name"],
-        release_tags=mv["release_tags"],
-        git_commit_hash=mv["git_commit_hash"],
-    )
-    return module_info
+    else:
+        raise HTTPException(status_code=404, detail=f"No dynamic service found with module_name={module_name} and version={version}")
 
 
-def list_service_status_helper(request: Request) -> List[DynamicServiceStatus]:
-    """
-    Retrieve the list of dynamic service statuses based on the Kubernetes pods and module information.
+def get_all_dynamic_service_statuses(request: Request, module_name, module_version) -> List[DynamicServiceStatus]:
+    if module_name or module_version:
+        logging.debug("dropping list_service_status params since SW1 doesn't use them")
 
-    Args:
-        request (Request): The request object used to retrieve Kubernetes client and other information.
-
-
-    Raises:
-        HTTPException: If no dynamic services or pods are found
-    :param request: FASTApi request
-    :return: List[DynamicServiceStatus]: A list of DynamicServiceStatus objects, each representing a dynamic service status.
-    """
-
-    module_hash_lookup = get_hash_to_name_mapping(request)
-    if len(module_hash_lookup) == 0:
+    if not request.app.state.catalog_client.get_hash_to_name_mappings():
         raise HTTPException(status_code=404, detail="No dynamic services found in catalog!")
 
-    pod_statuses = get_all_pods(request)
-    if len(pod_statuses) == 0:
-        raise HTTPException(status_code=404, detail="No pods found in kubernetes cluster with label dynamic-service=true!")
+    deployment_statuses = get_k8s_deployments(request)  # type List[V1Deployment]
+    if len(deployment_statuses) == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No deployments found in kubernetes cluster with namespace={get_settings().namespace} and labels=dynamic-service=true!",
+        )
 
+    # TODO see if you need to get the list based on running deployments or based on the catalog
     dynamic_service_statuses = []
-    for pod_status in pod_statuses:
-        print("Lookng up", pod_status)
-        module_info = lookup_module_info(request=request, module_name=pod_status.kb_module_name, git_commit=pod_status.git_commit)
+    for deployment in deployment_statuses:
+        deployment = deployment  # type: 'V1Deployment'
+        try:
+            module_name = deployment.metadata.annotations["module_name"]
+            git_commit = deployment.metadata.annotations["git_commit_hash"]
+        except KeyError:
+            # If someone deployed a bad service into this namespace, this will protect this query from failing
+            continue
+        module_info = lookup_module_info(request=request, module_name=module_name, git_commit=git_commit)  # type: 'CatalogModuleInfo'
         dynamic_service_statuses.append(
             DynamicServiceStatus(
-                status=pod_status,
                 url=module_info.url,
                 version=module_info.version,
                 module_name=module_info.module_name,
                 release_tags=module_info.release_tags,
                 git_commit_hash=module_info.git_commit_hash,
+                deployment_name=deployment.metadata.name,
+                replicas=deployment.spec.replicas,
+                updated_replicas=deployment.status.updated_replicas,
+                ready_replicas=deployment.status.ready_replicas,
+                available_replicas=deployment.status.available_replicas,
+                unavailable_replicas=deployment.status.unavailable_replicas,
             )
         )
-
     return dynamic_service_statuses
 
-    # Not sure if this is needed right now, need to do further resting
-    ##            except:
-    # this will occur if the module version is not registered with the catalog, or if the module
-    # was not marked as a service, or if something was started in Rancher directly and pulled
-    # # from somewhere else, or an old version of the catalog was used to start this service
-    # es["url"] = "https://{0}:{1}/dynserv/{3}.{2}".format(self.SVC_HOSTNAME, self.NGINX_PORT, rs[0], rs[1])
-    # es["version"] = ""
-    # es["release_tags"] = []
-    # es["git_commit_hash"] = ""
-    # es["module_name"] = "!" + rs[0] + ""
+
+def get_status(request: Request, module_name: str, version: str) -> Dict:
+    if module_name or version:
+        logging.debug("dropping get_status params since SW1 doesn't use them")
+
+    return {
+        "git_commit_hash": request.app.state.settings.vcs_ref,
+        "state": "OK",
+        "version": request.app.state.settings.vcs_ref,
+        "message": "",
+        "git_url": "https://github.com/kbase/service_wizard2",
+    }
+
+
+def get_version(request: Request, module_name, version) -> List[str]:
+    if module_name or version:
+        logging.debug("dropping get_version params since SW1 doesn't use them")
+
+    return [str(request.app.state.settings.vcs_ref)]

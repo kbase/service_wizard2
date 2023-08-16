@@ -8,10 +8,11 @@
 from __future__ import print_function
 
 import json as _json
-import requests as _requests
-import random as _random
 import os as _os
+import random as _random
 import traceback as _traceback
+
+import requests as _requests
 from requests.exceptions import ConnectionError
 from urllib3.exceptions import ProtocolError
 

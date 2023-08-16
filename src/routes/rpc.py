@@ -1,65 +1,63 @@
-from fastapi import Request, APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from typing import Callable
 
-# from src.routes.unauthenticated_routes import list_service_status, status
-from src.dependencies import status
+from fastapi import Request, APIRouter, HTTPException, Depends
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import Response, JSONResponse
+
+from src.rpc import authenticated_routes, unauthenticated_routes
+from src.rpc.common import validate_rpc_request, rpc_auth
+from src.rpc.error_responses import (
+    method_not_found,
+)
+from src.rpc.models import JSONRPCResponse
 
 router = APIRouter(
     tags=["rpc"],
     responses={404: {"description": "Not found"}},
 )
 
+# No KBase Token Required
+unauthenticated_routes_mapping = {
+    "ServiceWizard.list_service_status": unauthenticated_routes.list_service_status,
+    "ServiceWizard.status": unauthenticated_routes.status,
+    "ServiceWizard.version": unauthenticated_routes.version,
+    "ServiceWizard.get_service_status_without_restart": unauthenticated_routes.get_service_status_without_restart,
+}
+# Valid KBase Token Required
+kbase_token_required = {
+    "ServiceWizard.start": authenticated_routes.start,
+    "ServiceWizard.get_service_status": authenticated_routes.start,
+}
+# Valid KBase Token and Admin or username in [owners] in kbase.yaml required
+admin_or_owner_required = {
+    "ServiceWizard.get_service_log": authenticated_routes.get_service_log,
+    "ServiceWizard.stop": authenticated_routes.stop,
+}
 
-class JSONRequest(BaseModel):
-    version: str = "1.1"
-    method: str
-    params: dict
-    id: int
+authenticated_routes_mapping = {**kbase_token_required, **admin_or_owner_required}
+
+# Combine the dictionaries
+known_methods = {**unauthenticated_routes_mapping, **authenticated_routes_mapping}
 
 
-@router.post("/rpc")
-@router.post("/rpc/")
-async def json_rpc(request: Request):
-    try:
-        json_data = await request.json()
+async def get_body(request: Request):
+    return await request.body()
 
-        if not isinstance(json_data, dict):
-            raise ValueError("Invalid JSON format")
 
-        method = json_data.get("method")
-        params = json_data.get("params")
-        jrpc_id = json_data.get("id")
+@router.post("/rpc", response_model=None)
+@router.post("/rpc/", response_model=None)
+@router.post("/", response_model=None)
+def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HTTPException | JSONRPCResponse | JSONResponse:
+    method, params, jrpc_id = validate_rpc_request(body)
+    request_function: Callable = known_methods.get(method)
+    if request_function is None:
+        return method_not_found(method=method, jrpc_id=jrpc_id)
 
-        if not isinstance(method, str) or not isinstance(params, list):
-            raise ValueError(
-                f"Invalid JSON-RPC request format {type(method)} {type(params)}",
-            )
+    if request_function in authenticated_routes_mapping.values():
+        request.state.user_auth_roles = rpc_auth(request, jrpc_id)
 
-        """
-        * Could do a lookup table here
-        * Not able to call other routes here due to 
-        {"error": "'function' object has no attribute 'list_service_status'"}
-        """
-        if method == "ServiceWizard.list_service_status":
-            return {"result": [status.list_service_status_helper(request)], "id": jrpc_id}
-        elif method == "ServiceWizard.status":
-            return {"result": {}, "id": jrpc_id}
-
-        else:
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Method not found", "id": jrpc_id},
-            )
-
-    except ValueError as e:
-        return JSONResponse(
-            status_code=400,
-            content={"error": str(e)},
-        )
-
-    except Exception as e:
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)},
-        )
+    valid_response = request_function(request, params, jrpc_id)  # type:JSONRPCResponse
+    converted_response = jsonable_encoder(valid_response)
+    if "error" in converted_response:
+        return JSONResponse(content=converted_response, status_code=500)
+    return JSONResponse(content=converted_response, status_code=200)

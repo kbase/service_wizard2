@@ -24,4 +24,3 @@ RUN echo $GIT_COMMIT
 
 
 ENTRYPOINT ["scripts/entrypoint.sh"]
-
