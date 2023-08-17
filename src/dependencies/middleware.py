@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import HTTPException, Request
 from fastapi import Header, Cookie
 
@@ -26,6 +28,7 @@ def is_authorized(
     :return: A boolean indicating if the user is authorized or not
     """
     if not authorization and not kbase_session:
+        logging.warning("No authorization header or kbase_session cookie provided")
         raise HTTPException(
             status_code=400,
             detail="Please provide the 'Authorization' header or 'kbase_session' cookie",
@@ -41,4 +44,5 @@ def is_authorized(
         elif e.status_code == 404:
             raise e
         else:
+            logging.warning("Invalid or expired token")
             raise HTTPException(status_code=400, detail="Invalid or expired token")

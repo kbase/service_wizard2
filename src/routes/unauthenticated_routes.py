@@ -12,12 +12,12 @@ router = APIRouter(
 @router.get("/status")
 @router.get("/")
 def status(request: Request):
-    return get_status(request, module_name="", version="")
+    return get_status(request)
 
 
 @router.get("/version")
 def version(request: Request):
-    return get_version(request, module_name="", version="")
+    return get_version(request)
 
 
 @router.get("/sentry-debug")
