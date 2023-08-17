@@ -130,7 +130,6 @@ def _create_and_launch_deployment_helper(
         return False
     except ApiException as e:
         if e.status == 409:  # AlreadyExistsError
-            logging.warning(e.body)
             return True
         else:
             detail = traceback.format_exc()
