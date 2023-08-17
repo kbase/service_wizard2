@@ -4,12 +4,13 @@ from fastapi import Request, APIRouter, HTTPException, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 
+from clients.baseclient import ServerError
 from src.rpc import authenticated_routes, unauthenticated_routes
-from src.rpc.common import validate_rpc_request, rpc_auth
+from src.rpc.common import validate_rpc_request, rpc_auth, AuthException
 from src.rpc.error_responses import (
     method_not_found,
 )
-from src.rpc.models import JSONRPCResponse
+from src.rpc.models import JSONRPCResponse, ErrorResponse
 
 router = APIRouter(
     tags=["rpc"],
@@ -53,8 +54,22 @@ def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HT
     if request_function is None:
         return method_not_found(method=method, jrpc_id=jrpc_id)
 
-    if request_function in authenticated_routes_mapping.values():
-        request.state.user_auth_roles = rpc_auth(request, jrpc_id)
+    try:
+        if request_function in authenticated_routes_mapping.values():
+            request.state.user_auth_roles = rpc_auth(request, jrpc_id)
+    except (AuthException, HTTPException, ServerError) as e:
+        auth_error = JSONRPCResponse(
+            id=jrpc_id,
+            error=ErrorResponse(
+                message=f"Authentication required for ServiceWizard.{method}",
+                code=-32000,
+                name="Authentication error",
+                error=f"{e.detail}",
+            ),
+        )
+        return JSONResponse(content=jsonable_encoder(auth_error), status_code=500)
+    except:  # noqa E722
+        raise
 
     valid_response = request_function(request, params, jrpc_id)  # type:JSONRPCResponse
     converted_response = jsonable_encoder(valid_response)

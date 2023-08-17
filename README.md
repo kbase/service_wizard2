@@ -55,6 +55,7 @@ Ensure that all the required environment variables are properly set before runni
 
 
 # Code Review Request
+* Organization and error handling for authorization, files in random places from ripping out FASTAPI parts.
 * Organization and directory structure of APP
 * Organization and directory structure of TESTS
 * Organization and directory structure of TESTS (unit tests)
@@ -65,6 +66,7 @@ Ensure that all the required environment variables are properly set before runni
 * Dependency system design (passing around request.app.state)
 * Caching
 * Async/await
+*
 
 
 # Local Development
