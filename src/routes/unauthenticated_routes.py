@@ -22,4 +22,5 @@ def version(request: Request):
 
 @router.get("/sentry-debug")
 async def trigger_error():
+    # This endpoint is used to test the Sentry integration.
     division_by_zero = 1 / 0  # noqa: F841
