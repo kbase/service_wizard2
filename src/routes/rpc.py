@@ -4,7 +4,7 @@ from fastapi import Request, APIRouter, HTTPException, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 
-from clients.baseclient import ServerError
+from src.clients.baseclient import ServerError
 from src.rpc import authenticated_routes, unauthenticated_routes
 from src.rpc.common import validate_rpc_request, rpc_auth, AuthException
 from src.rpc.error_responses import (
