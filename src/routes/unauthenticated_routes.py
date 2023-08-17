@@ -18,3 +18,8 @@ def status(request: Request):
 @router.get("/version")
 def version(request: Request):
     return get_version(request)
+
+
+@router.get("/sentry-debug")
+async def trigger_error():
+    division_by_zero = 1 / 0  # noqa: F841

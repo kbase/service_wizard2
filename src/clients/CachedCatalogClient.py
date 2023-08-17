@@ -20,7 +20,7 @@ def get_module_name_hash(module_name: str = None):
 def _get_key(module_name: str, version: str = "release") -> str:
     if version is None:
         version = "release"
-    return module_name + "-" + version
+    return str(module_name) + "-" + str(version)
 
 
 class CachedCatalogClient:

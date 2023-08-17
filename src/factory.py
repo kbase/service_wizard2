@@ -28,8 +28,8 @@ def create_app(
     Create the app with the required dependencies.
     :param catalog_client: An instance of CachedCatalogClient
     :param auth_client: An instance of CachedAuthClient
-    :param k8s_clients:  An instance of K8sClients
-    :param settings:  An instance of Settings
+    :param k8s_clients: An instance of K8sClients
+    :param settings: An instance of Settings
     :return:
          Fastapi app and clients saved it its state attribute
     """
@@ -54,6 +54,7 @@ def create_app(
     app.state.catalog_client = catalog_client or CachedCatalogClient(settings=settings)
     app.state.k8s_clients = k8s_clients if k8s_clients else K8sClients(settings=settings)
     app.state.auth_client = auth_client if auth_client else CachedAuthClient(settings=settings)
+
     # Add the routes
     app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
