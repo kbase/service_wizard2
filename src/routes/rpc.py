@@ -56,7 +56,7 @@ def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HT
 
     try:
         if request_function in authenticated_routes_mapping.values():
-            request.state.user_auth_roles = rpc_auth(request, jrpc_id, method)
+            request.state.user_auth_roles = rpc_auth(request, jrpc_id, method, params)
     except (AuthException, HTTPException, ServerError) as e:
         auth_error = JSONRPCResponse(
             id=jrpc_id,
