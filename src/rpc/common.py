@@ -66,13 +66,14 @@ def validate_rpc_response(response: JSONRPCResponse):
     return response
 
 
-def rpc_auth(request: Request, jrpc_id: str) -> UserAuthRoles:
+def rpc_auth(request: Request, jrpc_id: str, method) -> UserAuthRoles:
     # Extract the Authorization header and the kbase_session cookie
     authorization = request.headers.get("Authorization")
     kbase_session = request.cookies.get("kbase_session")
 
     # Call the authenticated_user function
-    authorized = is_authorized(request=request, kbase_session=kbase_session, authorization=authorization)
+
+    authorized = is_authorized(request=request, kbase_session=kbase_session, authorization=authorization, method=method)
     if not authorized:
         raise AuthException(json_rpc_response_to_exception(token_validation_failed(jrpc_id)))
 

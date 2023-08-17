@@ -18,6 +18,7 @@ def is_authorized(
         description="KBase auth token",
     ),
     kbase_session: str = Cookie(None, regex=ALPHANUMERIC_PATTERN),
+    method: str = None,
 ) -> bool:
     """
     Check if the user is authorized to access the endpoint in general.
@@ -28,7 +29,7 @@ def is_authorized(
     :return: A boolean indicating if the user is authorized or not
     """
     if not authorization and not kbase_session:
-        logging.warning("No authorization header or kbase_session cookie provided")
+        logging.warning(f"No authorization header or kbase_session cookie provided { ' Method: ' + method if method else ''}")
         raise HTTPException(
             status_code=400,
             detail="Please provide the 'Authorization' header or 'kbase_session' cookie",
