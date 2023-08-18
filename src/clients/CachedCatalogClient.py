@@ -52,7 +52,6 @@ class CachedCatalogClient:
         :param version:       The version of the module.
         :return: The module info from the KBase Catalog
         """
-        print(f"About to look up, {module_name}, {version}, {_clean_version(version), type(_clean_version(version))}")
         key = _get_key(module_name, version)
         combined_module_info = self.module_info_cache.get(key=key, default=None)
         if not combined_module_info:
