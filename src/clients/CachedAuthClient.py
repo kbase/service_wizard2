@@ -74,10 +74,10 @@ class CachedAuthClient:
         :raises: HTTPException if the token is invalid, expired, or the auth service is down or the auth URL is incorrect
         """
         # TODO Try catch validate errors, auth service URL is bad, etc
-        username, roles = self.validate_and_get_username_roles(token)
+        username, roles = self.validate_and_get_username_auth_roles(token)
         return UserAuthRoles(username=username, user_roles=roles, admin_roles=self.admin_roles, token=token)
 
-    def validate_and_get_username_roles(self, token: str) -> tuple[str, list[str]]:
+    def validate_and_get_username_auth_roles(self, token: str) -> tuple[str, list[str]]:
         """
         This calls out the auth service to validate the token and get the username and auth roles
         :param token: The token to validate

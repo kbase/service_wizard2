@@ -66,8 +66,8 @@ def get_user_auth_roles(request: Request, jrpc_id: str, method: str) -> tuple[An
     authorization = request.headers.get("Authorization")
     kbase_session = request.cookies.get("kbase_session")
     try:
-        return request.app.state.auth_client.ac.get_user_auth_roles(token=authorization or kbase_session), None
-    except Exception as e:
+        return request.app.state.auth_client.get_user_auth_roles(token=authorization or kbase_session), None
+    except HTTPException as e:
         return None, JSONRPCResponse(
             id=jrpc_id,
             error=ErrorResponse(
@@ -77,6 +77,8 @@ def get_user_auth_roles(request: Request, jrpc_id: str, method: str) -> tuple[An
                 error=f"{e.detail}",
             ),
         )
+    except:  # noqa: E722
+        raise
 
 
 def handle_rpc_request(
