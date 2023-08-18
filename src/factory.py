@@ -38,6 +38,9 @@ def create_app(
     if os.environ.get("DOTENV_FILE_LOCATION"):
         load_dotenv(os.environ.get("DOTENV_FILE_LOCATION", ".env"))
 
+    if not settings:
+        settings = get_settings()
+
     if os.environ.get("SENTRY_DSN"):
         sentry_sdk.init(
             dsn=os.environ["SENTRY_DSN"],
@@ -45,8 +48,7 @@ def create_app(
             http_proxy=os.environ.get("HTTP_PROXY"),
             environment=settings.external_ds_url,
         )
-    if not settings:
-        settings = get_settings()
+
     app = FastAPI(root_path=settings.root_path)  # type: FastAPI
 
     # Set up the state of the app with various clients. Note, when running multiple threads, these will each have their own cache
