@@ -4,13 +4,12 @@ from fastapi import Request, APIRouter, HTTPException, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 
-from src.clients.baseclient import ServerError
 from src.rpc import authenticated_routes, unauthenticated_routes
-from src.rpc.common import validate_rpc_request, rpc_auth, AuthException
+from src.rpc.common import validate_rpc_request, get_user_auth_roles
 from src.rpc.error_responses import (
     method_not_found,
 )
-from src.rpc.models import JSONRPCResponse, ErrorResponse
+from src.rpc.models import JSONRPCResponse
 
 router = APIRouter(
     tags=["rpc"],
@@ -23,22 +22,17 @@ unauthenticated_routes_mapping = {
     "ServiceWizard.status": unauthenticated_routes.status,
     "ServiceWizard.version": unauthenticated_routes.version,
     "ServiceWizard.get_service_status_without_restart": unauthenticated_routes.get_service_status_without_restart,
+    "ServiceWizard.start": unauthenticated_routes.start,
+    "ServiceWizard.get_service_status": unauthenticated_routes.start,
 }
-# Valid KBase Token Required
-kbase_token_required = {
-    "ServiceWizard.start": authenticated_routes.start,
-    "ServiceWizard.get_service_status": authenticated_routes.start,
-}
+
 # Valid KBase Token and Admin or username in [owners] in kbase.yaml required
 admin_or_owner_required = {
     "ServiceWizard.get_service_log": authenticated_routes.get_service_log,
     "ServiceWizard.stop": authenticated_routes.stop,
 }
 
-authenticated_routes_mapping = {**kbase_token_required, **admin_or_owner_required}
-
-# Combine the dictionaries
-known_methods = {**unauthenticated_routes_mapping, **authenticated_routes_mapping}
+known_methods = {**unauthenticated_routes_mapping, **admin_or_owner_required}
 
 
 async def get_body(request: Request):
@@ -54,22 +48,12 @@ def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HT
     if request_function is None:
         return method_not_found(method=method, jrpc_id=jrpc_id)
 
-    try:
-        if request_function in authenticated_routes_mapping.values():
-            request.state.user_auth_roles = rpc_auth(request, jrpc_id, method, params)
-    except (AuthException, HTTPException, ServerError) as e:
-        auth_error = JSONRPCResponse(
-            id=jrpc_id,
-            error=ErrorResponse(
-                message=f"Authentication required for ServiceWizard.{method}",
-                code=-32000,
-                name="Authentication error",
-                error=f"{e.detail}",
-            ),
-        )
-        return JSONResponse(content=jsonable_encoder(auth_error), status_code=500)
-    except:  # noqa E722
-        raise
+    if request_function in admin_or_owner_required.values():
+        user_auth_roles, auth_error = get_user_auth_roles(request, jrpc_id, method)
+        if auth_error:
+            return JSONResponse(content=jsonable_encoder(auth_error), status_code=500)
+        else:
+            request.state.user_auth_roles = user_auth_roles
 
     valid_response = request_function(request, params, jrpc_id)  # type:JSONRPCResponse
     converted_response = jsonable_encoder(valid_response)

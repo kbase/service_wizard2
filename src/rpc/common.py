@@ -1,16 +1,12 @@
 import json
 import traceback
-from typing import Callable
+from typing import Callable, Any
 
-from fastapi import HTTPException
-from starlette.requests import Request
+from fastapi import HTTPException, Request
 
 from src.clients.CachedAuthClient import UserAuthRoles, CachedAuthClient  # noqa: F401
 from src.clients.baseclient import ServerError
-from src.dependencies.middleware import is_authorized
 from src.rpc.error_responses import (
-    token_validation_failed,
-    json_rpc_response_to_exception,
     no_params_passed,
 )
 from src.rpc.models import ErrorResponse, JSONRPCResponse
@@ -66,19 +62,21 @@ def validate_rpc_response(response: JSONRPCResponse):
     return response
 
 
-def rpc_auth(request: Request, jrpc_id: str, method: str, payload: dict) -> UserAuthRoles:
-    # Extract the Authorization header and the kbase_session cookie
+def get_user_auth_roles(request: Request, jrpc_id: str, method: str) -> tuple[Any, None] | tuple[None, JSONRPCResponse]:
     authorization = request.headers.get("Authorization")
     kbase_session = request.cookies.get("kbase_session")
-
-    # Call the authenticated_user function
-
-    authorized = is_authorized(request=request, kbase_session=kbase_session, authorization=authorization, method=method, payload=payload)
-    if not authorized:
-        raise AuthException(json_rpc_response_to_exception(token_validation_failed(jrpc_id)))
-
-    ac = request.app.state.auth_client  # type: CachedAuthClient
-    return ac.get_user_auth_roles(token=authorization or kbase_session)
+    try:
+        return request.app.state.auth_client.ac.get_user_auth_roles(token=authorization or kbase_session), None
+    except Exception as e:
+        return None, JSONRPCResponse(
+            id=jrpc_id,
+            error=ErrorResponse(
+                message=f"Authentication required for ServiceWizard.{method}",
+                code=-32000,
+                name="Authentication error",
+                error=f"{e.detail}",
+            ),
+        )
 
 
 def handle_rpc_request(

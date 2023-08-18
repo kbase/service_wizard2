@@ -1,7 +1,7 @@
 import logging
 
-from fastapi import HTTPException, Request
-from fastapi import Header, Cookie
+from fastapi import HTTPException
+from fastapi import Header, Cookie, Request
 
 from src.clients.CachedAuthClient import CachedAuthClient  # noqa: F401
 
