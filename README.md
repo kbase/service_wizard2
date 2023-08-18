@@ -61,6 +61,8 @@ true". The application will automatically use the in-cluster configuration provi
 you want to use an external configuration file, ensure that `USE_INCLUSTER_CONFIG` is set to "false" and provide the
 path to the configuration file using the `KUBECONFIG` environment variable.
 
+**NOTE THAT**  setting `NAMESPACE` also creates a toleration V1Toleration(effect="NoSchedule", key=namespace, operator="Exists")
+
 ## *Optional Environment Variables*
 
 ## Telemetry and Miscellaneous configs
