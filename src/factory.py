@@ -34,7 +34,9 @@ def create_app(
          Fastapi app and clients saved it its state attribute
     """
     logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
-    load_dotenv(os.environ.get("DOTENV_FILE_LOCATION", ".env"))
+
+    if os.environ.get("DOTENV_FILE_LOCATION"):
+        load_dotenv(os.environ.get("DOTENV_FILE_LOCATION", ".env"))
 
     if os.environ.get("SENTRY_DSN"):
         sentry_sdk.init(
