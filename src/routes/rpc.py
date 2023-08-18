@@ -43,6 +43,8 @@ async def get_body(request: Request):
 @router.post("/rpc/", response_model=None)
 @router.post("/", response_model=None)
 def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HTTPException | JSONRPCResponse | JSONResponse:
+    print(f"Original Request Payload  {body.decode()}")
+
     method, params, jrpc_id = validate_rpc_request(body)
     request_function: Callable = known_methods.get(method)
     if request_function is None:
