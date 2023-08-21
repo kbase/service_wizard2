@@ -12,10 +12,10 @@ from src.clients.CachedAuthClient import CachedAuthClient
 from src.clients.CachedCatalogClient import CachedCatalogClient
 from src.clients.KubernetesClients import K8sClients
 from src.configs.settings import get_settings, Settings
-from src.routes.authenticated_routes import router as sw2_authenticated_router
-from src.routes.metrics_routes import router as metrics_router
-from src.routes.rpc import router as sw2_rpc_router
-from src.routes.unauthenticated_routes import router as sw2_unauthenticated_router
+from src.fastapi_routes.authenticated_routes import router as sw2_authenticated_router
+from src.fastapi_routes.metrics_routes import router as metrics_router
+from src.fastapi_routes.rpc import router as sw2_rpc_router
+from src.fastapi_routes.unauthenticated_routes import router as sw2_unauthenticated_router
 
 
 def create_app(

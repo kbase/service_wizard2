@@ -12,14 +12,6 @@ from src.rpc.error_responses import (
 from src.rpc.models import ErrorResponse, JSONRPCResponse
 
 
-class AuthException(Exception):
-    pass
-
-
-class AuthServiceException(Exception):
-    pass
-
-
 def validate_rpc_request(body):
     """
     Validate the JSON-RPC request body to ensure methods and params are present and of the correct type.

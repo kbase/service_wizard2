@@ -4,7 +4,7 @@ from fastapi import Request, APIRouter, HTTPException, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 
-from src.rpc import authenticated_routes, unauthenticated_routes
+from src.rpc import authenticated_handlers, unauthenticated_handlers
 from src.rpc.common import validate_rpc_request, get_user_auth_roles
 from src.rpc.error_responses import (
     method_not_found,
@@ -18,18 +18,18 @@ router = APIRouter(
 
 # No KBase Token Required
 unauthenticated_routes_mapping = {
-    "ServiceWizard.list_service_status": unauthenticated_routes.list_service_status,
-    "ServiceWizard.status": unauthenticated_routes.status,
-    "ServiceWizard.version": unauthenticated_routes.version,
-    "ServiceWizard.get_service_status_without_restart": unauthenticated_routes.get_service_status_without_restart,
-    "ServiceWizard.start": unauthenticated_routes.start,
-    "ServiceWizard.get_service_status": unauthenticated_routes.start,
+    "ServiceWizard.list_service_status": unauthenticated_handlers.list_service_status,
+    "ServiceWizard.status": unauthenticated_handlers.status,
+    "ServiceWizard.version": unauthenticated_handlers.version,
+    "ServiceWizard.get_service_status_without_restart": unauthenticated_handlers.get_service_status_without_restart,
+    "ServiceWizard.start": unauthenticated_handlers.start,
+    "ServiceWizard.get_service_status": unauthenticated_handlers.start,
 }
 
 # Valid KBase Token and Admin or username in [owners] in kbase.yaml required
 admin_or_owner_required = {
-    "ServiceWizard.get_service_log": authenticated_routes.get_service_log,
-    "ServiceWizard.stop": authenticated_routes.stop,
+    "ServiceWizard.get_service_log": authenticated_handlers.get_service_log,
+    "ServiceWizard.stop": authenticated_handlers.stop,
 }
 
 known_methods = {**unauthenticated_routes_mapping, **admin_or_owner_required}
