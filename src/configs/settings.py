@@ -39,6 +39,7 @@ class Settings:
 def get_settings() -> Settings:
     """
     Get the settings for the service wizard. These are read from environment variables and then cached.
+    All variables should be strings. To read more about the variables, see the README.md file.
     :return: A Settings object
     """
     required_variables = [
@@ -53,8 +54,6 @@ def get_settings() -> Settings:
         "KBASE_ROOT_ENDPOINT",
         "KBASE_SERVICES_ENDPOINT",
     ]
-
-    # Treat all variables as strings
     for var in required_variables:
         value = os.environ.get(var)
         if not value:
@@ -70,13 +69,9 @@ def get_settings() -> Settings:
         if role
     ]
 
-    # At least one required admin role must be set
     if len(admin_roles) == 0:
         raise EnvironmentVariableError("At least one admin role (KBASE_ADMIN_ROLE, CATALOG_ADMIN_ROLE, or SERVICE_WIZARD_ADMIN_ROLE) must be set in the .env file")
 
-    # USE_INCLUSTER_CONFIG is a boolean that takes precedence over KUBECONFIG
-    # USE_INCLUSTER_CONFIG works when running in a k8s cluster
-    # KUBECONFIG works when running locally and is good for local development
     if "KUBECONFIG" not in os.environ and "USE_INCLUSTER_CONFIG" not in os.environ:
         raise EnvironmentVariableError("At least one of the environment variables 'KUBECONFIG' or 'USE_INCLUSTER_CONFIG' must be set")
 

@@ -4,7 +4,7 @@ metadata:
   name: resource-manager-role
   namespace: staging-dynamic-services
 rules:
-  - apiGroups: [ "" ] # Default core API group
+  - apiGroups: [ "" ]
     resources: [ "pods", "pods/log", "deployments", "services", "ingresses" ]
     verbs: [ "get", "list", "watch", "create", "update", "patch", "delete" ]
   - apiGroups: [ "apps" ]
