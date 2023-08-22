@@ -92,19 +92,17 @@ def _sanitize_deployment_name(module_name, module_git_commit_hash):
     """
     Create a deployment name based on the module name and git commit hash.
     Adhere to Kubernetes API naming rules and create valid DNS labels.
-
     :param module_name: Name of the module
     :param module_git_commit_hash: Git commit hash of the module
     :return: Deployment name and service name
     """
-
-    maximum_length = 63 - len("d--d") - 7
-    sanitized_module_name = re.sub(r"[^a-zA-Z0-9-]", "-", module_name)[:maximum_length]
     short_git_sha = module_git_commit_hash[:7]
-
+    # 2 characters for 'd-', 7 characters for short_git_sha, 2 characters for '-d', and 1 character for the middle dash
+    reserved_length = len("d-") + len(short_git_sha) + len("-d") + 1  # +1 for the middle dash
+    available_length = 63 - reserved_length
+    sanitized_module_name = re.sub(r"[^a-zA-Z0-9-]", "-", module_name)[:available_length]
     deployment_name = f"d-{sanitized_module_name}-{short_git_sha}-d".lower()
     service_name = f"s-{sanitized_module_name}-{short_git_sha}-s".lower()
-
     return deployment_name, service_name
 
 

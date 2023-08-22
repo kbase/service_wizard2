@@ -131,7 +131,7 @@ def test_get_logs_for_first_pod_in_deployment(mock_get_k8s_core_client):
         ("test!module", "7654321", "d-test-module-7654321-d"),
         ("test*module", "7654321", "d-test-module-7654321-d"),
         ("test.module.with.many.dots", "7654321", "d-test-module-with-many-dots-7654321-d"),
-        ("a" * 64, "1234567", "d-" + "a" * (63 - len("d--d") - 7) + "-1234567-d"),
+        ("a" * 64, "1234567", "d-" + "a" * (63 - len("d---d") - 7) + "-1234567-d"),
         ("", "1234567", "d--1234567-d"),
     ],
 )
