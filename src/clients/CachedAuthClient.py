@@ -23,14 +23,14 @@ class UserAuthRoles:
 
 
 class CachedAuthClient:
-    valid_tokens = LRUCache(ttl=10)
-
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings = None, valid_tokens_cache: LRUCache = None):
         """
         Initialize the CachedAuthClient
         :param settings: The settings to use, or use the default settings if not provided
+        :param valid_tokens_cache: The cache to use for valid tokens, or use a new LRUCache if not provided
         """
-        self.settings = get_settings() if not settings else settings
+        self.settings = get_settings() if settings is None else settings
+        self.valid_tokens = LRUCache(ttl=10) if valid_tokens_cache is None else valid_tokens_cache
         self.auth_url = self.settings.auth_service_url
         self.admin_roles = self.settings.admin_roles
 

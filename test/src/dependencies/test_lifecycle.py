@@ -16,7 +16,7 @@
 # @pytest.fixture(autouse=True)
 # def load_environment():
 #     # Ensure that the environment variables are loaded before running the tests
-#     load_dotenv("/Users/bsadkhin/modules/kbase/service_wizard2/.env")
+#     load_dotenv("/.env")
 #
 #
 # @pytest.fixture(scope="session")

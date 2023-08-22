@@ -38,8 +38,15 @@ class K8sClients:
             ValueError: If more than one Kubernetes client is provided or if none are provided.
         """
 
-        if sum(x is not None for x in [k8s_core_client, k8s_app_client, k8s_network_client]) > 1:
+        clients_and_types = [(k8s_core_client, CoreV1Api), (k8s_app_client, AppsV1Api), (k8s_network_client, NetworkingV1Api)]
+
+        num_clients_provided = sum(x is not None for x in [k8s_core_client, k8s_app_client, k8s_network_client])
+        if num_clients_provided not in [0, 3]:
             raise ValueError("All k8s_clients should either be all None or all provided")
+
+        for client, expected_type in clients_and_types:
+            if client is not None and not isinstance(client, expected_type):
+                raise TypeError(f"Expected client of type {expected_type}, but got {type(client)}")
 
         if k8s_core_client is None:
             if settings.use_incluster_config is True:

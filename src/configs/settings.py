@@ -43,17 +43,18 @@ def get_settings() -> Settings:
     :return: A Settings object
     """
     required_variables = [
-        "NAMESPACE",
-        "AUTH_SERVICE_URL",
         "AUTH_LEGACY_URL",
-        "CATALOG_URL",
+        "AUTH_SERVICE_URL",
         "CATALOG_ADMIN_TOKEN",
-        "EXTERNAL_SW_URL",
+        "CATALOG_URL",
         "EXTERNAL_DS_URL",
-        "ROOT_PATH",
+        "EXTERNAL_SW_URL",
         "KBASE_ROOT_ENDPOINT",
         "KBASE_SERVICES_ENDPOINT",
+        "NAMESPACE",
+        "ROOT_PATH",
     ]
+
     for var in required_variables:
         value = os.environ.get(var)
         if not value:
