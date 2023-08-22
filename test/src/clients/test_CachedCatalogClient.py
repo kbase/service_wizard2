@@ -7,16 +7,15 @@ from src.configs.settings import get_settings
 
 
 @pytest.fixture
-def client():
-    settings = get_settings()
-    client = CachedCatalogClient(settings=settings)
-    client.module_volume_mount_cache.clear()  # Clear the cache before each test
-    return client
+def mocked_catalog():
+    return Mock()
 
 
 @pytest.fixture
-def mocked_catalog():
-    return Mock()
+def client(mocked_catalog):
+    ccc = CachedCatalogClient(settings=get_settings(), catalog=mocked_catalog)
+
+    return ccc
 
 
 def test_get_combined_module_info(client, mocked_catalog):
