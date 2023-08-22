@@ -91,29 +91,20 @@ def v1_volume_mount_factory(mounts):
 def _sanitize_deployment_name(module_name, module_git_commit_hash):
     """
     Create a deployment name based on the module name and git commit hash. But adhere to kubernetes api naming rules and be a valid DNS label
+    A DNS Name cannot be more than 63 characters long and can only contain the characters [a-z0-9-]
     :param module_name:
     :param module_git_commit_hash:
     :return:
     """
 
-    sanitized_module_name = re.sub(r"[^a-zA-Z0-9]", "-", module_name)
+    maximum_length = 63 - len(["d", "-", "-", "-", "d"]) + 7
+    sanitized_module_name = re.sub(r"[^a-zA-Z0-9]", "-", module_name)[0:maximum_length]
     short_git_sha = module_git_commit_hash[:7]
 
     deployment_name = f"d-{sanitized_module_name}-{short_git_sha}-d".lower()
     service_name = f"s-{sanitized_module_name}-{short_git_sha}-s".lower()
 
-    # If the deployment name is too long, shorten it
-    if len(deployment_name) > 63:
-        excess_length = len(deployment_name) - 63
-        deployment_name = f"d-{sanitized_module_name[:-excess_length]}-{short_git_sha}-d"
-        service_name = f"s-{sanitized_module_name[:-excess_length]}-{short_git_sha}-s"
-
     return deployment_name, service_name
-
-    # TODO: Add a test for this function
-    # TODO: add documentation about maximum length of deployment name being 63 characters,
-    # Test the function with a very long module name and a git commit hash
-    # sanitize_deployment_name("My_Module_Name"*10, "7f6d03cf556b2a1e610fd70b68924a2f6700ae44")
 
 
 def create_clusterip_service(request, module_name, module_git_commit_hash, labels) -> client.V1Service:

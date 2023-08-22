@@ -8,6 +8,7 @@ from src.configs.settings import get_settings, EnvironmentVariableError
 @pytest.fixture
 def cleared_settings():
     """Fixture to clear the cache of the get_settings function and then return the Settings object."""
+    """ In theory these tests could clobber the state of os.environ for each other if run in parallel"""
     get_settings.cache_clear()
     return get_settings()
 
@@ -91,3 +92,28 @@ def test_missing_admin_roles():
         original_value = os.environ.get(role_var)
         if original_value:
             os.environ[role_var] = original_value
+
+
+def test_missing_kube_config_or_incluster_config():
+    # Back up the original values of the environment variables
+    original_kubeconfig = os.environ.get("KUBECONFIG")
+    original_use_incluster_config = os.environ.get("USE_INCLUSTER_CONFIG")
+
+    # Remove the KUBECONFIG and USE_INCLUSTER_CONFIG environment variables
+    if "KUBECONFIG" in os.environ:
+        os.environ.pop("KUBECONFIG")
+    if "USE_INCLUSTER_CONFIG" in os.environ:
+        os.environ.pop("USE_INCLUSTER_CONFIG")
+
+    # Clear the cache for get_settings
+    get_settings.cache_clear()
+
+    # Expect an error since neither KUBECONFIG nor USE_INCLUSTER_CONFIG is set
+    with pytest.raises(EnvironmentVariableError, match="At least one of the environment variables 'KUBECONFIG' or 'USE_INCLUSTER_CONFIG' must be set"):
+        get_settings()
+
+    # Restore the original values of the environment variables after testing
+    if original_kubeconfig:
+        os.environ["KUBECONFIG"] = original_kubeconfig
+    if original_use_incluster_config:
+        os.environ["USE_INCLUSTER_CONFIG"] = original_use_incluster_config
