@@ -90,15 +90,16 @@ def v1_volume_mount_factory(mounts):
 
 def _sanitize_deployment_name(module_name, module_git_commit_hash):
     """
-    Create a deployment name based on the module name and git commit hash. But adhere to kubernetes api naming rules and be a valid DNS label
-    A DNS Name cannot be more than 63 characters long and can only contain the characters [a-z0-9-]
-    :param module_name:
-    :param module_git_commit_hash:
-    :return:
+    Create a deployment name based on the module name and git commit hash.
+    Adhere to Kubernetes API naming rules and create valid DNS labels.
+
+    :param module_name: Name of the module
+    :param module_git_commit_hash: Git commit hash of the module
+    :return: Deployment name and service name
     """
 
-    maximum_length = 63 - len(["d", "-", "-", "-", "d"]) + 7
-    sanitized_module_name = re.sub(r"[^a-zA-Z0-9]", "-", module_name)[0:maximum_length]
+    maximum_length = 63 - len("d--d") - 7
+    sanitized_module_name = re.sub(r"[^a-zA-Z0-9-]", "-", module_name)[:maximum_length]
     short_git_sha = module_git_commit_hash[:7]
 
     deployment_name = f"d-{sanitized_module_name}-{short_git_sha}-d".lower()
