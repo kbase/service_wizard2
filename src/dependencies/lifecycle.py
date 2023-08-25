@@ -72,6 +72,8 @@ def get_volume_mounts(request, module_name, module_version):
 
 def _setup_metadata(module_name, requested_module_version, git_commit_hash, version, git_url) -> Tuple[Dict, Dict]:
     """
+    TESTED=TRUE
+
     Convenience method to set up the labels and annotations for a deployment.
 
     :param module_name: Module name that comes from the web request

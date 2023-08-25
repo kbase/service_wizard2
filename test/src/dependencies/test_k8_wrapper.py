@@ -1,6 +1,8 @@
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from kubernetes import client
+
 from src.dependencies.k8_wrapper import (
     create_clusterip_service,
     _sanitize_deployment_name,
