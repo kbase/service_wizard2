@@ -1,12 +1,15 @@
+import logging
 import re
 from unittest.mock import Mock, patch
 
 import pytest
-from fastapi import Request
-from test.src.dependencies import test_lifecycle_helpers as tlh
+from fastapi import Request, HTTPException
+from kubernetes.client import ApiException
+
 from src.clients.CachedCatalogClient import CachedCatalogClient
 from src.configs.settings import get_settings
 from src.dependencies import lifecycle
+from test.src.dependencies import test_lifecycle_helpers as tlh
 
 
 def _get_mock_request():
@@ -112,50 +115,95 @@ def test_start_deployment(
     scale_replicas_mock.assert_called_once()  #
 
 
-#
-# @patch("src.dependencies.lifecycle.create_and_launch_deployment")
-# def test_create_and_launch_deployment_helper_exists(mock_create_and_launch, mock_request):
-#     # Arrange
-#     module_name = "test_module"
-#     git_commit_hash = "hash123"
-#     image = "test_image"
-#     labels = {}
-#     annotations = {}
-#     env = {}
-#     mounts = []
-#
-#     # Mock the create_and_launch_deployment function to raise an ApiException with status 409
-#     mock_exception = ApiException(status=409)
-#     mock_create_and_launch.side_effect = mock_exception
-#
-#     # Act
-#     result = _create_and_launch_deployment_helper(
-#         annotations=annotations,
-#         env=env,
-#         image=image,
-#         labels=labels,
-#         module_git_commit_hash=git_commit_hash,
-#         module_name=module_name,
-#         mounts=mounts,
-#         request=mock_request
-#     )
-#
-#     # Assert
-#     assert result == True
-#
-#
-# @patch("src.dependencies.lifecycle.create_and_launch_deployment")
-# def test_create_and_launch_deployment_helper_exception(mock_create_and_launch, mock_request):
-#     # Arrange
-#     mock_exception = ApiException(status=500)
-#     mock_create_and_launch.side_effect = mock_exception
-#
-#     # ... other mock setups ...
-#
-#     # Act & Assert
-#     # with pytest.raises(HTTPException):
-#     #     _create_and_launch_deployment_helper(...args...)
-#
+@patch("src.dependencies.lifecycle.create_and_launch_deployment")
+def test__create_and_launch_deployment_helper(mock_create_and_launch, mock_request):
+    # Test truthiness based on api exception
+    module_name = "test_module"
+    git_commit_hash = "hash123"
+    image = "test_image"
+    labels = {}
+    annotations = {}
+    env = {}
+    mounts = []
+
+    mock_exception = ApiException(status=409)
+    mock_create_and_launch.side_effect = mock_exception
+
+    # Act
+    result = lifecycle._create_and_launch_deployment_helper(
+        annotations=annotations, env=env, image=image, labels=labels, module_git_commit_hash=git_commit_hash, module_name=module_name, mounts=mounts, request=mock_request
+    )
+
+    # Assert
+    assert result is True
+
+    mock_create_and_launch.side_effect = None
+    result = lifecycle._create_and_launch_deployment_helper(
+        annotations=annotations, env=env, image=image, labels=labels, module_git_commit_hash=git_commit_hash, module_name=module_name, mounts=mounts, request=mock_request
+    )
+    assert result is False
+
+    with pytest.raises(HTTPException) as e:
+        mock_create_and_launch.side_effect = ApiException(status=500)
+        lifecycle._create_and_launch_deployment_helper(
+            annotations=annotations, env=env, image=image, labels=labels, module_git_commit_hash=git_commit_hash, module_name=module_name, mounts=mounts, request=mock_request
+        )
+    assert e.value.status_code == 500
+
+
+@patch("src.dependencies.lifecycle.create_clusterip_service")
+@patch.object(logging, "warning")
+def test__create_cluster_ip_service_helper(mock_logging_warning, mock_create_clusterip_service, mock_request):
+    # Test truthiness based on api exception
+    module_name = "test_module"
+    git_commit_hash = "hash123"
+    labels = {}
+
+    mock_create_clusterip_service.side_effect = None
+    lifecycle._create_cluster_ip_service_helper(request=mock_request, module_name=module_name, catalog_git_commit_hash=git_commit_hash, labels=labels)
+    assert mock_create_clusterip_service.call_count == 1
+    assert mock_logging_warning.call_count == 0
+
+    mock_create_clusterip_service.side_effect = ApiException(status=409)
+    lifecycle._create_cluster_ip_service_helper(request=mock_request, module_name=module_name, catalog_git_commit_hash=git_commit_hash, labels=labels)
+    mock_logging_warning.assert_called_once_with("Service already exists, skipping creation")
+    assert mock_logging_warning.call_count == 1
+    assert mock_create_clusterip_service.call_count == 2
+
+    with pytest.raises(HTTPException) as e:
+        mock_create_clusterip_service.side_effect = ApiException(status=500)
+        lifecycle._create_cluster_ip_service_helper(request=mock_request, module_name=module_name, catalog_git_commit_hash=git_commit_hash, labels=labels)
+    assert e.value.status_code == 500
+    assert mock_logging_warning.call_count == 1
+    assert mock_create_clusterip_service.call_count == 3
+
+
+@patch("src.dependencies.lifecycle.update_ingress_to_point_to_service")
+@patch.object(logging, "warning")
+def test_create_and_launch_deployment_helper(mock_logging_warning, mock_update_ingress_to_point_to_service, mock_request):
+    # Test truthiness based on api exception
+    module_name = "test_module"
+    git_commit_hash = "hash123"
+
+    mock_update_ingress_to_point_to_service.side_effect = None
+    lifecycle._update_ingress_for_service_helper(request=mock_request, module_name=module_name, git_commit_hash=git_commit_hash)
+    assert mock_update_ingress_to_point_to_service.call_count == 1
+    assert mock_logging_warning.call_count == 0
+
+    mock_update_ingress_to_point_to_service.side_effect = ApiException(status=409)
+    lifecycle._update_ingress_for_service_helper(request=mock_request, module_name=module_name, git_commit_hash=git_commit_hash)
+    assert mock_update_ingress_to_point_to_service.call_count == 2
+    assert mock_logging_warning.call_count == 1
+    mock_logging_warning.assert_called_once_with("Ingress already exists, skipping creation")
+
+    with pytest.raises(HTTPException) as e:
+        mock_update_ingress_to_point_to_service.side_effect = ApiException(status=500)
+        lifecycle._update_ingress_for_service_helper(request=mock_request, module_name=module_name, git_commit_hash=git_commit_hash)
+    assert e.value.status_code == 500
+    assert mock_update_ingress_to_point_to_service.call_count == 3
+    assert mock_logging_warning.call_count == 1
+
+
 #
 # @patch("src.dependencies.lifecycle.get_service_status_with_retries")
 # @patch("src.dependencies.lifecycle._update_ingress_for_service_helper")
