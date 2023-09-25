@@ -1,50 +1,21 @@
 import os
+from glob import glob
 
 import pytest
 from dotenv import load_dotenv
 
 
+def _as_module(fixture_path: str) -> str:
+    return fixture_path.replace("/", ".").replace("\\", ".").replace(".py", "")
+
+def pytest_collectreport(report):
+    print("CONFTEST loaded")
+
 @pytest.fixture(autouse=True)
 def load_environment():
     # Ensure that the environment variables are loaded before running the tests
-    load_dotenv()
+    load_dotenv(os.environ.get("DOTENV_FILE_LOCATION", ".env"))
 
 
-@pytest.fixture(autouse=True)
-def generate_kubeconfig():
-    # Generate a kubeconfig file for testing
-    # Overwrite kubeconfig
-    os.environ["KUBECONFIG"] = "test_kubeconfig_file"
-    kubeconfig_path = os.environ["KUBECONFIG"]
 
-    kubeconfig_content = """\
-apiVersion: v1
-kind: Config
-current-context: test-context
-clusters:
-- name: test-cluster
-  cluster:
-    server: https://test-api-server
-    insecure-skip-tls-verify: true
-contexts:
-- name: test-context
-  context:
-    cluster: test-cluster
-    user: test-user
-users:
-- name: test-user
-  user:
-    exec:
-      command: echo
-      apiVersion: client.authentication.k8s.io/v1alpha1
-      args:
-      - "access_token"
-"""
-
-    with open(kubeconfig_path, "w") as kubeconfig_file:
-        kubeconfig_file.write(kubeconfig_content.strip())
-
-    yield
-
-    # Clean up the generated kubeconfig file after the tests
-    os.remove(kubeconfig_path)
+pytest_plugins = [_as_module(fixture) for fixture in glob("test/src/fixtures/[!_]*.py")]

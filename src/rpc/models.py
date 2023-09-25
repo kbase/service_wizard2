@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel
 
@@ -10,22 +10,27 @@ class ErrorResponse(BaseModel):
     error: str = None
 
 
+
+
 class JSONRPCResponse(BaseModel):
     version: str = "1.0"
-    id: Optional[int | str]
-    error: Optional[ErrorResponse]
+    id: Optional[Union[int, str]] = 0
+    error: Optional[ErrorResponse] = None
     result: Any = None
 
-    def dict(self, *args, **kwargs):
-        response_dict = super().dict(*args, **kwargs)
-        if self.result is None:
-            response_dict.pop("result", None)
+    def model_dump(self, *args, **kwargs) -> dict[str, Any]:
+        # Default behavior for the serialization
+        serialized_data = super().model_dump(*args, **kwargs)
 
-        if self.error is None:
-            response_dict.pop("error", None)
-            response_dict.pop("version", None)
+        # Custom logic to exclude fields based on their values
+        if serialized_data.get("result") is None:
+            serialized_data.pop("result", None)
 
-        if self.id is None:
-            response_dict.pop("id", None)
+        if serialized_data.get("error") is None:
+            serialized_data.pop("error", None)
+            serialized_data.pop("version", None)
 
-        return response_dict
+        if serialized_data.get("id") is None:
+            serialized_data.pop("id", None)
+
+        return serialized_data

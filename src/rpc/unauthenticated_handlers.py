@@ -18,13 +18,11 @@ def start(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse
     return handle_rpc_request(request, params, jrpc_id, start_deployment)
 
 
-def status(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:
-    if not params:
-        params = [{}]
+def status(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:  # noqa F811
+    params = [{}]
     return handle_rpc_request(request, params, jrpc_id, get_status)
 
 
-def version(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:
-    if not params:
-        params = [{}]
+def version(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:  # noqa F811
+    params = [{}]
     return handle_rpc_request(request, params, jrpc_id, get_version)

@@ -68,4 +68,4 @@ def token_validation_failed(jrpc_id):
 
 
 def json_rpc_response_to_exception(content: JSONRPCResponse, status_code=500):
-    return JSONResponse(content=content.dict(), status_code=status_code)
+    return JSONResponse(content=content.model_dump(), status_code=status_code)

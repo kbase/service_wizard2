@@ -1,41 +1,16 @@
 import logging
 import re
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
-from fastapi import Request, HTTPException
+from fastapi import HTTPException
 from kubernetes.client import ApiException
 
-from src.clients.CachedCatalogClient import CachedCatalogClient
+from src.clients.baseclient import ServerError
 from src.configs.settings import get_settings
 from src.dependencies import lifecycle
-from test.src.dependencies import test_lifecycle_helpers as tlh
-
-
-def _get_mock_request():
-    request = Mock(spec=Request)
-    request.app.state.settings = get_settings()
-
-    mock_module_info = {
-        "git_commit_hash": "test_hash",
-        "version": "test_version",
-        "git_url": "https://github.com/test/repo",
-        "module_name": "test_module",
-        "release_tags": ["test_tag"],
-        "owners": ["test_owner"],
-        "docker_img_name": "test_img_name",
-    }
-
-    request.app.state.catalog_client = Mock(spec=CachedCatalogClient)
-    request.app.state.catalog_client.get_combined_module_info.return_value = mock_module_info
-    request.app.state.catalog_client.list_service_volume_mounts.return_value = []
-    request.app.state.catalog_client.get_secure_params.return_value = [{"param_name": "test_secure_param_name", "param_value": "test_secure_param_value"}]
-    return request
-
-
-@pytest.fixture
-def mock_request():
-    return _get_mock_request()
+from src.models.models import DynamicServiceStatus, ServiceStatus
+from test.src.dependencies import test_helpers as tlh
 
 
 def test_simple_get_volume_mounts(mock_request):
@@ -99,12 +74,13 @@ def test_start_deployment(
     _create_cluster_ip_service_helper_mock,
     get_service_status_with_retries_mock,
     scale_replicas_mock,
+    mock_request,
 ):
     # Test Deployment Does Not Already exist, no need to scale replicas
     _create_and_launch_deployment_helper_mock.return_value = False
     _setup_metadata_mock.return_value = {}, {}
     get_service_status_with_retries_mock.return_value = tlh.get_stopped_deployment("tester")
-    mock_request = _get_mock_request()
+
     rv = lifecycle.start_deployment(request=mock_request, module_name="test_module", module_version="dev")
     scale_replicas_mock.assert_not_called()
     assert rv == tlh.get_stopped_deployment("tester")
@@ -204,38 +180,38 @@ def test_create_and_launch_deployment_helper(mock_logging_warning, mock_update_i
     assert mock_logging_warning.call_count == 1
 
 
-#
-# @patch("src.dependencies.lifecycle.get_service_status_with_retries")
-# @patch("src.dependencies.lifecycle._update_ingress_for_service_helper")
-# @patch("src.dependencies.lifecycle._create_cluster_ip_service_helper")
-# @patch("src.dependencies.lifecycle._create_and_launch_deployment_helper")
-# @patch("src.dependencies.lifecycle.get_env")
-# @patch("src.dependencies.lifecycle.get_volume_mounts")
-# @patch("src.dependencies.lifecycle._setup_metadata")
-# def test_start_deployment_existing(
-#         mock_setup_metadata, mock_get_volume_mounts, mock_get_env,
-#         mock_create_and_launch, mock_create_cluster_ip, mock_update_ingress,
-#         mock_get_status, mock_request):
-#     # Arrange
-#     module_name = "test_module"
-#     module_version = "1.0"
-#
-#     mock_setup_metadata.return_value = ({}, {})
-#     mock_get_volume_mounts.return_value = []
-#     mock_get_env.return_value = {}
-#     mock_create_and_launch.return_value = False
-#     mock_create_cluster_ip.return_value = None
-#     mock_update_ingress.return_value = None
-#     mock_get_status.return_value = tlh.get_running_deployment(deployment_name="test_existing_deployment")
-#
-#     # Act
-#     result = start_deployment(mock_request, module_name, module_version)
-#
-#     # Assert
-#     assert isinstance(result, DynamicServiceStatus)
-#
-#
-#
-#
-#
-#
+@patch("src.dependencies.lifecycle.scale_replicas")
+def test_stop_deployment(mock_scale_replicas, mock_request):
+    mock_request.state.user_auth_roles.is_admin_or_owner.return_value = False
+    with pytest.raises(ServerError) as e:
+        lifecycle.stop_deployment(request=mock_request, module_name="test_module", module_version="test_version")
+    assert mock_request.state.user_auth_roles.is_admin_or_owner.call_count == 1
+    assert e.value.code == -32000
+    assert e.value.message == "Only admins or module owners can stop dynamic services"
+
+    mock_request.state.user_auth_roles.is_admin_or_owner.return_value = True
+
+    deployment = tlh.create_sample_deployment(deployment_name="test_deployment_name", replicas=0, ready_replicas=0, available_replicas=0, unavailable_replicas=0)
+
+    mock_scale_replicas.return_value = deployment
+
+    rv = lifecycle.stop_deployment(request=mock_request, module_name="test_module", module_version="test_version")
+
+    dds = DynamicServiceStatus(
+        git_commit_hash="test_hash",
+        status=ServiceStatus.STOPPED,
+        version="test_version",
+        hash="test_hash",
+        release_tags=["test_tag"],
+        url="https://ci.kbase.us/dynamic_services/test_module.test_hash",
+        module_name="test_module",
+        health=ServiceStatus.STOPPED,
+        up=0,
+        deployment_name="test_deployment_name",
+        replicas=0,
+        updated_replicas=0,
+        ready_replicas=0,
+        available_replicas=0,
+        unavailable_replicas=0,
+    )
+    assert rv == dds

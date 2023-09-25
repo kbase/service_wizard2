@@ -34,8 +34,9 @@ def validate_rpc_request(body):
     params = json_data.get("params", [])
     jrpc_id = json_data.get("id", 0)
 
-    if not isinstance(method, str) or not isinstance(params, list):
+    if not isinstance(method, str) and not isinstance(params, list):
         raise ServerError(message=f"`method` must be a valid SW1 method string. Params must be a dictionary. {json_data}", code=-32600, name="Invalid Request")
+    print(type(method), type(params), type(jrpc_id))
     return method, params, jrpc_id
 
 
@@ -83,6 +84,16 @@ def handle_rpc_request(
     method_name = action.__name__
     try:
         params = params[0]
+        if not isinstance(params, dict):
+            return JSONRPCResponse(
+                id=jrpc_id,
+                error=ErrorResponse(
+                    message=f"Invalid params for ServiceWizard.{method_name}",
+                    code=-32602,
+                    name="Invalid params",
+                    error=f"Params must be a dictionary. Got {type(params)}",
+                ),
+            )
     except IndexError:
         return no_params_passed(method=method_name, jrpc_id=jrpc_id)
 
@@ -93,6 +104,7 @@ def handle_rpc_request(
 
     try:
         result = action(request, module_name, module_version)
+        print("ABOUT TO RETURN RESULT", result)
         return JSONRPCResponse(id=jrpc_id, result=[result])
     except ServerError as e:
         traceback_str = traceback.format_exc()

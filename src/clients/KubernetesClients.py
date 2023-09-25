@@ -2,8 +2,9 @@ import logging
 from typing import Optional
 
 from cacheout import LRUCache
+from fastapi.requests import Request
 from kubernetes import config
-from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api
+from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api, V1Deployment
 
 from src.configs.settings import Settings
 
@@ -66,3 +67,32 @@ class K8sClients:
         self.network_client = k8s_network_client
         self.service_status_cache = LRUCache(ttl=10)
         self.all_service_status_cache = LRUCache(ttl=10)
+
+
+def get_k8s_core_client(request: Request) -> CoreV1Api:
+    return request.app.state.k8s_clients.core_client
+
+
+def get_k8s_app_client(request: Request) -> AppsV1Api:
+    return request.app.state.k8s_clients.app_client
+
+
+def get_k8s_networking_client(request: Request) -> NetworkingV1Api:
+    return request.app.state.k8s_clients.network_client
+
+
+def get_k8s_service_status_cache(request: Request) -> LRUCache:
+    return request.app.state.k8s_clients.service_status_cache
+
+
+def get_k8s_all_service_status_cache(request: Request) -> LRUCache:
+    return request.app.state.k8s_clients.all_service_status_cache
+
+
+def check_service_status_cache(request: Request, label_selector_text) -> V1Deployment:
+    cache = get_k8s_service_status_cache(request)
+    return cache.get(label_selector_text, None)
+
+
+def populate_service_status_cache(request: Request, label_selector_text, data: list):
+    get_k8s_service_status_cache(request).set(label_selector_text, data)

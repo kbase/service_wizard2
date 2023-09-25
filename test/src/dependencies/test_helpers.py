@@ -6,14 +6,14 @@ from src.models.models import DynamicServiceStatus, CatalogModuleInfo
 
 def get_running_deployment(deployment_name) -> DynamicServiceStatus:
     module_info = _create_sample_module_info()
-    deployment = _create_sample_deployment(deployment_name=deployment_name, ready_replicas=1)
+    deployment = create_sample_deployment(deployment_name=deployment_name, ready_replicas=1, replicas=1, available_replicas=1, unavailable_replicas=0)
     deployment_status = _create_deployment_status(module_info, deployment)
     return deployment_status
 
 
 def get_stopped_deployment(deployment_name) -> DynamicServiceStatus:
     module_info = _create_sample_module_info()
-    deployment = _create_sample_deployment(deployment_name=deployment_name, ready_replicas=0, available_replicas=0)
+    deployment = create_sample_deployment(deployment_name=deployment_name, ready_replicas=0, available_replicas=0, unavailable_replicas=1, replicas=0)
     deployment_status = _create_deployment_status(module_info, deployment)
     return deployment_status
 
@@ -34,7 +34,7 @@ def _create_deployment_status(module_info, deployment) -> DynamicServiceStatus:
     )
 
 
-def _create_sample_deployment(deployment_name, replicas=1, ready_replicas=1, available_replicas=1, unavailable_replicas=0):
+def create_sample_deployment(deployment_name, replicas, ready_replicas, available_replicas, unavailable_replicas):
     deployment_status = V1DeploymentStatus(
         updated_replicas=replicas, ready_replicas=ready_replicas, available_replicas=available_replicas, unavailable_replicas=unavailable_replicas
     )

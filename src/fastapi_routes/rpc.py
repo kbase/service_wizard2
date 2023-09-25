@@ -55,8 +55,12 @@ def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HT
         else:
             request.state.user_auth_roles = user_auth_roles
 
+    print(request, params, jrpc_id)
     valid_response = request_function(request, params, jrpc_id)  # type:JSONRPCResponse
+    print("RESPONSE IS", valid_response)
     converted_response = jsonable_encoder(valid_response)
+    print("CONVERTED RESPONSE IS", converted_response)
     if "error" in converted_response:
+        print("HERE YOU GO")
         return JSONResponse(content=converted_response, status_code=500)
     return JSONResponse(content=converted_response, status_code=200)
