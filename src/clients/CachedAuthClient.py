@@ -23,14 +23,14 @@ class UserAuthRoles:
 
 
 class CachedAuthClient:
-    valid_tokens = LRUCache(ttl=10)
-
-    def __init__(self, settings: Settings):
+    def __init__(self, settings: Settings = None, valid_tokens_cache: LRUCache = None):
         """
         Initialize the CachedAuthClient
         :param settings: The settings to use, or use the default settings if not provided
+        :param valid_tokens_cache: The cache to use for valid tokens, or use a new LRUCache if not provided
         """
-        self.settings = get_settings() if not settings else settings
+        self.settings = get_settings() if settings is None else settings
+        self.valid_tokens = LRUCache(ttl=10) if valid_tokens_cache is None else valid_tokens_cache
         self.auth_url = self.settings.auth_service_url
         self.admin_roles = self.settings.admin_roles
 
@@ -74,10 +74,10 @@ class CachedAuthClient:
         :raises: HTTPException if the token is invalid, expired, or the auth service is down or the auth URL is incorrect
         """
         # TODO Try catch validate errors, auth service URL is bad, etc
-        username, roles = self.validate_and_get_username_roles(token)
+        username, roles = self.validate_and_get_username_auth_roles(token)
         return UserAuthRoles(username=username, user_roles=roles, admin_roles=self.admin_roles, token=token)
 
-    def validate_and_get_username_roles(self, token: str) -> tuple[str, list[str]]:
+    def validate_and_get_username_auth_roles(self, token: str) -> tuple[str, list[str]]:
         """
         This calls out the auth service to validate the token and get the username and auth roles
         :param token: The token to validate

@@ -7,15 +7,15 @@ from cacheout import LRUCache  # noqa F401
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
 
 from src.clients.CachedAuthClient import CachedAuthClient
 from src.clients.CachedCatalogClient import CachedCatalogClient
 from src.clients.KubernetesClients import K8sClients
 from src.configs.settings import get_settings, Settings
-from src.routes.authenticated_routes import router as sw2_authenticated_router
-from src.routes.rpc import router as sw2_rpc_router
-from src.routes.unauthenticated_routes import router as sw2_unauthenticated_router
+from src.fastapi_routes.authenticated_routes import router as sw2_authenticated_router
+from src.fastapi_routes.metrics_routes import router as metrics_router
+from src.fastapi_routes.rpc import router as sw2_rpc_router
+from src.fastapi_routes.unauthenticated_routes import router as sw2_unauthenticated_router
 
 
 def create_app(
@@ -33,20 +33,22 @@ def create_app(
     :return:
          Fastapi app and clients saved it its state attribute
     """
+    logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
 
-    logging.basicConfig(level=logging.DEBUG)
-    load_dotenv(os.environ.get("DOTENV_FILE_LOCATION", ".env"))
+    if os.environ.get("DOTENV_FILE_LOCATION"):
+        load_dotenv(os.environ.get("DOTENV_FILE_LOCATION", ".env"))
 
-    # Instrumentation for Sentry connection
-    # This is an administrator telemetry setting and should not be used for local development
+    if not settings:
+        settings = get_settings()
+
     if os.environ.get("SENTRY_DSN"):
         sentry_sdk.init(
             dsn=os.environ["SENTRY_DSN"],
             traces_sample_rate=1.0,
             http_proxy=os.environ.get("HTTP_PROXY"),
+            environment=settings.external_ds_url,
         )
-    if not settings:
-        settings = get_settings()
+
     app = FastAPI(root_path=settings.root_path)  # type: FastAPI
 
     # Set up the state of the app with various clients. Note, when running multiple threads, these will each have their own cache
@@ -61,7 +63,8 @@ def create_app(
     app.include_router(sw2_rpc_router)
     # Middleware Do we need this?
     app.add_middleware(GZipMiddleware, minimum_size=1000)
-    # Instrumentation for prometheus metrics
-    Instrumentator().instrument(app).expose(app)
+
+    if os.environ.get("METRICS_USERNAME") and os.environ.get("METRICS_PASSWORD"):
+        app.include_router(router=metrics_router)
 
     return app

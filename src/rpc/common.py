@@ -1,27 +1,15 @@
 import json
 import traceback
-from typing import Callable
+from typing import Callable, Any
 
-from fastapi import HTTPException
-from starlette.requests import Request
+from fastapi import HTTPException, Request
 
 from src.clients.CachedAuthClient import UserAuthRoles, CachedAuthClient  # noqa: F401
 from src.clients.baseclient import ServerError
-from src.dependencies.middleware import is_authorized
 from src.rpc.error_responses import (
-    token_validation_failed,
-    json_rpc_response_to_exception,
     no_params_passed,
 )
 from src.rpc.models import ErrorResponse, JSONRPCResponse
-
-
-class AuthException(Exception):
-    pass
-
-
-class AuthServiceException(Exception):
-    pass
 
 
 def validate_rpc_request(body):
@@ -46,8 +34,9 @@ def validate_rpc_request(body):
     params = json_data.get("params", [])
     jrpc_id = json_data.get("id", 0)
 
-    if not isinstance(method, str) or not isinstance(params, list):
+    if not isinstance(method, str) and not isinstance(params, list):
         raise ServerError(message=f"`method` must be a valid SW1 method string. Params must be a dictionary. {json_data}", code=-32600, name="Invalid Request")
+    print(type(method), type(params), type(jrpc_id))
     return method, params, jrpc_id
 
 
@@ -66,18 +55,24 @@ def validate_rpc_response(response: JSONRPCResponse):
     return response
 
 
-def rpc_auth(request: Request, jrpc_id: str) -> UserAuthRoles:
-    # Extract the Authorization header and the kbase_session cookie
+def get_user_auth_roles(request: Request, jrpc_id: str, method: str) -> tuple[Any, None] | tuple[None, JSONRPCResponse]:
     authorization = request.headers.get("Authorization")
     kbase_session = request.cookies.get("kbase_session")
-
-    # Call the authenticated_user function
-    authorized = is_authorized(request=request, kbase_session=kbase_session, authorization=authorization)
-    if not authorized:
-        raise AuthException(json_rpc_response_to_exception(token_validation_failed(jrpc_id)))
-
-    ac = request.app.state.auth_client  # type: CachedAuthClient
-    return ac.get_user_auth_roles(token=authorization or kbase_session)
+    try:
+        return request.app.state.auth_client.get_user_auth_roles(token=authorization or kbase_session), None
+    except HTTPException as e:
+        return None, JSONRPCResponse(
+            id=jrpc_id,
+            error=ErrorResponse(
+                message=f"Authentication required for ServiceWizard.{method}",
+                code=-32000,
+                name="Authentication error",
+                error=f"{e.detail}",
+            ),
+        )
+    except:  # noqa: E722
+        # Something unexpected happened, but we STILL don't want to authorize the request!
+        raise
 
 
 def handle_rpc_request(
@@ -89,6 +84,16 @@ def handle_rpc_request(
     method_name = action.__name__
     try:
         params = params[0]
+        if not isinstance(params, dict):
+            return JSONRPCResponse(
+                id=jrpc_id,
+                error=ErrorResponse(
+                    message=f"Invalid params for ServiceWizard.{method_name}",
+                    code=-32602,
+                    name="Invalid params",
+                    error=f"Params must be a dictionary. Got {type(params)}",
+                ),
+            )
     except IndexError:
         return no_params_passed(method=method_name, jrpc_id=jrpc_id)
 
@@ -99,6 +104,7 @@ def handle_rpc_request(
 
     try:
         result = action(request, module_name, module_version)
+        print("ABOUT TO RETURN RESULT", result)
         return JSONRPCResponse(id=jrpc_id, result=[result])
     except ServerError as e:
         traceback_str = traceback.format_exc()

@@ -27,4 +27,4 @@ def whoami(
 ):
     cac = request.app.state.auth_client  # type: CachedAuthClient
 
-    return cac.validate_and_get_username_roles(token=authorization if authorization else kbase_session)
+    return cac.validate_and_get_username_auth_roles(token=authorization if authorization else kbase_session)

@@ -29,7 +29,7 @@ def get_service_log(request: Request, module_name: str, module_version: str) -> 
         return [{"instance_id": pod_name, "log": logs}]
 
 
-def get_service_log_web_socket(request: Request, module_name: str, module_version: str) -> List[dict]:
+def get_service_log_web_socket(request: Request, module_name: str, module_version: str) -> List[dict]:  # pragma: no cover
     """
     Get logs for a service. This isn't used anywhere but can require a dependency on rancher if implemented.
 

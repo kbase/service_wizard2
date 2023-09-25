@@ -3,7 +3,6 @@ import re
 import time
 from typing import Optional, List
 
-from cacheout import LRUCache
 from fastapi import Request
 from kubernetes import client
 from kubernetes.client import (
@@ -14,46 +13,21 @@ from kubernetes.client import (
     V1IngressSpec,
     V1IngressRule,
     ApiException,
-    CoreV1Api,
-    AppsV1Api,
-    NetworkingV1Api,
     V1HTTPIngressPath,
     V1IngressBackend,
-    V1Deployment,
     V1HTTPIngressRuleValue,
     V1Toleration,
 )
 
+from src.clients.KubernetesClients import (
+    get_k8s_core_client,
+    get_k8s_app_client,
+    get_k8s_networking_client,
+    get_k8s_all_service_status_cache,
+    check_service_status_cache,
+    populate_service_status_cache,
+)
 from src.configs.settings import get_settings
-
-
-def get_k8s_core_client(request: Request) -> CoreV1Api:
-    return request.app.state.k8s_clients.core_client
-
-
-def get_k8s_app_client(request: Request) -> AppsV1Api:
-    return request.app.state.k8s_clients.app_client
-
-
-def get_k8s_networking_client(request: Request) -> NetworkingV1Api:
-    return request.app.state.k8s_clients.network_client
-
-
-def _get_k8s_service_status_cache(request: Request) -> LRUCache:
-    return request.app.state.k8s_clients.service_status_cache
-
-
-def _get_k8s_all_service_status_cache(request: Request) -> LRUCache:
-    return request.app.state.k8s_clients.all_service_status_cache
-
-
-def check_service_status_cache(request: Request, label_selector_text) -> V1Deployment:
-    cache = _get_k8s_service_status_cache(request)
-    return cache.get(label_selector_text, None)
-
-
-def populate_service_status_cache(request: Request, label_selector_text, data: list):
-    _get_k8s_service_status_cache(request).set(label_selector_text, data)
 
 
 def get_pods_in_namespace(
@@ -88,37 +62,27 @@ def v1_volume_mount_factory(mounts):
     return volumes, volume_mounts
 
 
-def _sanitize_deployment_name(module_name, module_git_commit_hash):
+def sanitize_deployment_name(module_name, module_git_commit_hash):
     """
-    Create a deployment name based on the module name and git commit hash. But adhere to kubernetes api naming rules and be a valid DNS label
-    :param module_name:
-    :param module_git_commit_hash:
-    :return:
+    Create a deployment name based on the module name and git commit hash.
+    Adhere to Kubernetes API naming rules and create valid DNS labels.
+    :param module_name: Name of the module
+    :param module_git_commit_hash: Git commit hash of the module
+    :return: Deployment name and service name
     """
-
-    sanitized_module_name = re.sub(r"[^a-zA-Z0-9]", "-", module_name)
     short_git_sha = module_git_commit_hash[:7]
-
+    # 2 characters for 'd-', 7 characters for short_git_sha, 2 characters for '-d', and 1 character for the middle dash
+    reserved_length = len("d-") + len(short_git_sha) + len("-d") + 1  # +1 for the middle dash
+    available_length = 63 - reserved_length
+    sanitized_module_name = re.sub(r"[^a-zA-Z0-9-]", "-", module_name)[:available_length]
     deployment_name = f"d-{sanitized_module_name}-{short_git_sha}-d".lower()
     service_name = f"s-{sanitized_module_name}-{short_git_sha}-s".lower()
-
-    # If the deployment name is too long, shorten it
-    if len(deployment_name) > 63:
-        excess_length = len(deployment_name) - 63
-        deployment_name = f"d-{sanitized_module_name[:-excess_length]}-{short_git_sha}-d"
-        service_name = f"s-{sanitized_module_name[:-excess_length]}-{short_git_sha}-s"
-
     return deployment_name, service_name
-
-    # TODO: Add a test for this function
-    # TODO: add documentation about maximum length of deployment name being 63 characters,
-    # Test the function with a very long module name and a git commit hash
-    # sanitize_deployment_name("My_Module_Name"*10, "7f6d03cf556b2a1e610fd70b68924a2f6700ae44")
 
 
 def create_clusterip_service(request, module_name, module_git_commit_hash, labels) -> client.V1Service:
     core_v1_api = get_k8s_core_client(request)
-    deployment_name, service_name = _sanitize_deployment_name(module_name, module_git_commit_hash)
+    deployment_name, service_name = sanitize_deployment_name(module_name, module_git_commit_hash)
 
     # Define the service
     service = V1Service(
@@ -199,7 +163,7 @@ def _update_ingress_with_retries(request, new_path, namespace, retries=3):
 def update_ingress_to_point_to_service(request: Request, module_name: str, git_commit_hash: str):
     settings = request.app.state.settings
     namespace = settings.namespace
-    deployment_name, service_name = _sanitize_deployment_name(module_name, git_commit_hash)
+    deployment_name, service_name = sanitize_deployment_name(module_name, git_commit_hash)
     # Need to sync this with Status methods
     path = f"/{settings.external_ds_url.split('/')[-1]}/{module_name}.{git_commit_hash}(/|$)(.*)"
     new_path = V1HTTPIngressPath(path=path, path_type="ImplementationSpecific", backend=V1IngressBackend(service={"name": service_name, "port": {"number": 5000}}))
@@ -207,7 +171,7 @@ def update_ingress_to_point_to_service(request: Request, module_name: str, git_c
 
 
 def create_and_launch_deployment(request, module_name, module_git_commit_hash, image, labels, annotations, env, mounts) -> client.V1LabelSelector:
-    deployment_name, service_name = _sanitize_deployment_name(module_name, module_git_commit_hash)
+    deployment_name, service_name = sanitize_deployment_name(module_name, module_git_commit_hash)
     namespace = request.app.state.settings.namespace
 
     annotations["k8s_deployment_name"] = deployment_name
@@ -274,7 +238,7 @@ def get_k8s_deployments(request, label_selector="us.kbase.dynamicservice=true") 
     :return: A list of deployments
     """
 
-    cache = _get_k8s_all_service_status_cache(request)
+    cache = get_k8s_all_service_status_cache(request)
     cached_deployments = cache.get(label_selector, None)
     if cached_deployments is not None:
         return cached_deployments
@@ -288,7 +252,7 @@ def get_k8s_deployments(request, label_selector="us.kbase.dynamicservice=true") 
 
 
 def delete_deployment(request, module_name, module_git_commit_hash) -> str:
-    deployment_name, _ = _sanitize_deployment_name(module_name, module_git_commit_hash)
+    deployment_name, _ = sanitize_deployment_name(module_name, module_git_commit_hash)
     namespace = request.app.state.settings.namespace
     get_k8s_app_client(request).delete_namespaced_deployment(name=deployment_name, namespace=namespace)
     return deployment_name
@@ -302,7 +266,7 @@ def scale_replicas(request, module_name, module_git_commit_hash, replicas: int) 
 
 
 def get_logs_for_first_pod_in_deployment(request, module_name, module_git_commit_hash):
-    deployment_name, _ = _sanitize_deployment_name(module_name, module_git_commit_hash)
+    deployment_name, _ = sanitize_deployment_name(module_name, module_git_commit_hash)
     namespace = request.app.state.settings.namespace
     label_selector_text = f"us.kbase.module.module_name={module_name.lower()}," + f"us.kbase.module.git_commit_hash={module_git_commit_hash}"
 

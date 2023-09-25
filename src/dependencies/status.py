@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List, Dict
+from typing import List, Dict, Optional, Any
 
 from fastapi import Request, HTTPException
 
@@ -160,7 +160,7 @@ def get_all_dynamic_service_statuses(request: Request, module_name, module_versi
     return dynamic_service_statuses
 
 
-def get_status(request: Request, module_name: str, version: str) -> Dict:
+def get_status(request: Request, module_name: Optional[Any] = None, version: Optional[Any] = None) -> Dict:
     if module_name or version:
         logging.debug("dropping get_status params since SW1 doesn't use them")
 
@@ -173,7 +173,7 @@ def get_status(request: Request, module_name: str, version: str) -> Dict:
     }
 
 
-def get_version(request: Request, module_name, version) -> List[str]:
+def get_version(request: Request, module_name: Optional[Any] = None, version: Optional[Any] = None) -> List[str]:
     if module_name or version:
         logging.debug("dropping get_version params since SW1 doesn't use them")
 

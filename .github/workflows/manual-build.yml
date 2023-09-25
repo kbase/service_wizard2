@@ -1,7 +1,7 @@
 ---
 name: Manual Build & Push
 on:
- workflow_dispatch:
+  workflow_dispatch:
 jobs:
   build-push:
     uses: kbase/.github/.github/workflows/reusable_build-push.yml@main

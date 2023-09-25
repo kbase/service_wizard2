@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request
 
-from src.dependencies.status import get_version, get_status
 from src.configs.settings import Settings  # noqa: F401
+from src.dependencies.status import get_version, get_status
 
 router = APIRouter(
     tags=["unauthenticated"],
@@ -22,4 +22,5 @@ def version(request: Request):
 
 @router.get("/sentry-debug")
 async def trigger_error():
+    # This endpoint is used to test the Sentry integration.
     division_by_zero = 1 / 0  # noqa: F841
