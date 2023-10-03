@@ -3,7 +3,7 @@ import os
 from typing import Optional
 
 import sentry_sdk
-from cacheout import LRUCache  # noqa F401
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware

@@ -10,8 +10,6 @@ class ErrorResponse(BaseModel):
     error: str = None
 
 
-
-
 class JSONRPCResponse(BaseModel):
     version: str = "1.0"
     id: Optional[Union[int, str]] = 0
