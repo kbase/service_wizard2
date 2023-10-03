@@ -105,8 +105,7 @@ pipenv shell
 To start the server, run
 
 ```
-uvicorn --host 0.0.0.0 --factory factory:create_app --reload --port 1234
-```
+PYTHONPATH=.:src uvicorn --host 0.0.0.0 --factory factory:create_app --reload --port 1234```
 
 To install pre-commit hook and test it
 
@@ -129,8 +128,7 @@ the [env](test/.env) file.
 
 You can run the service in pycharm as well, but you will need to set the following parameters in the run configuration:
 
-parameters = `<uvicorn_path_goes_here> --reload --port 5002 --host 0.0.0.0 --factory factory:create_app `
-
+parameters = `PYTHONPATH=.:src uvicorn --host 0.0.0.0 --factory factory:create_app --reload --port 1234`
 ## Usage
 
 OpenAPI documentation is provided at the `/docs` endpoint of the server (in KBase, this is
