@@ -1,9 +1,9 @@
 from fastapi import Request
 
-from src.dependencies import logs
-from src.dependencies.lifecycle import stop_deployment
-from src.rpc.common import handle_rpc_request
-from src.rpc.models import JSONRPCResponse
+from dependencies import logs
+from dependencies.lifecycle import stop_deployment
+from rpc.common import handle_rpc_request
+from rpc.models import JSONRPCResponse
 
 
 def stop(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:

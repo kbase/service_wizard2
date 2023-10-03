@@ -4,12 +4,12 @@ from typing import Callable, Any
 
 from fastapi import HTTPException, Request
 
-from src.clients.CachedAuthClient import UserAuthRoles, CachedAuthClient  # noqa: F401
-from src.clients.baseclient import ServerError
-from src.rpc.error_responses import (
+from clients.CachedAuthClient import UserAuthRoles, CachedAuthClient  # noqa: F401
+from clients.baseclient import ServerError
+from rpc.error_responses import (
     no_params_passed,
 )
-from src.rpc.models import ErrorResponse, JSONRPCResponse
+from rpc.models import ErrorResponse, JSONRPCResponse
 
 
 def validate_rpc_request(body):

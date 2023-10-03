@@ -19,7 +19,7 @@ from kubernetes.client import (
     V1Toleration,
 )
 
-from src.clients.KubernetesClients import (
+from clients.KubernetesClients import (
     get_k8s_core_client,
     get_k8s_app_client,
     get_k8s_networking_client,
@@ -27,7 +27,7 @@ from src.clients.KubernetesClients import (
     check_service_status_cache,
     populate_service_status_cache,
 )
-from src.configs.settings import get_settings
+from configs.settings import get_settings
 
 
 def get_pods_in_namespace(
@@ -168,6 +168,7 @@ def update_ingress_to_point_to_service(request: Request, module_name: str, git_c
     path = f"/{settings.external_ds_url.split('/')[-1]}/{module_name}.{git_commit_hash}(/|$)(.*)"
     new_path = V1HTTPIngressPath(path=path, path_type="ImplementationSpecific", backend=V1IngressBackend(service={"name": service_name, "port": {"number": 5000}}))
     _update_ingress_with_retries(request=request, new_path=new_path, namespace=namespace)
+    print(123)
 
 
 def create_and_launch_deployment(request, module_name, module_git_commit_hash, image, labels, annotations, env, mounts) -> client.V1LabelSelector:

@@ -1,6 +1,6 @@
 from fastapi.responses import JSONResponse
 
-from src.rpc.models import ErrorResponse, JSONRPCResponse
+from rpc.models import ErrorResponse, JSONRPCResponse
 
 
 def method_not_found(method, jrpc_id) -> JSONRPCResponse:

@@ -2,10 +2,10 @@ from typing import List, Any
 
 from fastapi.requests import Request
 
-from src.clients.baseclient import ServerError
-from src.dependencies.k8_wrapper import get_logs_for_first_pod_in_deployment
-from src.dependencies.status import lookup_module_info
-from src.rpc.models import JSONRPCResponse
+from clients.baseclient import ServerError
+from dependencies.k8_wrapper import get_logs_for_first_pod_in_deployment
+from dependencies.status import lookup_module_info
+from rpc.models import JSONRPCResponse
 
 
 def get_service_log(request: Request, module_name: str, module_version: str) -> JSONRPCResponse | list[dict[str, Any]] | None:

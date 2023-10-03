@@ -1,7 +1,7 @@
 from kubernetes.client import V1DeploymentStatus, V1LabelSelector, V1PodTemplateSpec, V1ObjectMeta, V1DeploymentSpec, V1Deployment
 
-from src.configs.settings import get_settings
-from src.models.models import DynamicServiceStatus, CatalogModuleInfo
+from configs.settings import get_settings
+from models.models import DynamicServiceStatus, CatalogModuleInfo
 
 
 def get_running_deployment(deployment_name) -> DynamicServiceStatus:

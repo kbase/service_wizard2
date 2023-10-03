@@ -4,10 +4,10 @@ from typing import List, Dict, Optional, Any
 
 from fastapi import Request, HTTPException
 
-from src.clients.baseclient import ServerError
-from src.configs.settings import get_settings
-from src.dependencies.k8_wrapper import query_k8s_deployment_status, get_k8s_deployments, DuplicateLabelsException
-from src.models.models import DynamicServiceStatus, CatalogModuleInfo
+from clients.baseclient import ServerError
+from configs.settings import get_settings
+from dependencies.k8_wrapper import query_k8s_deployment_status, get_k8s_deployments, DuplicateLabelsException
+from models.models import DynamicServiceStatus, CatalogModuleInfo
 
 
 def lookup_module_info(request: Request, module_name: str, git_commit: str) -> CatalogModuleInfo:

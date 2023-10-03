@@ -3,8 +3,8 @@
 # from cacheout import LRUCache
 # from fastapi.testclient import TestClient
 #
-# from src.configs.settings import get_settings
-# from src.factory import create_app
+# from configs.settings import get_settings
+# from factory import create_app
 #
 #
 # @pytest.fixture

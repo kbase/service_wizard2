@@ -3,7 +3,7 @@ import logging
 from fastapi import HTTPException
 from fastapi import Header, Cookie, Request
 
-from src.clients.CachedAuthClient import CachedAuthClient  # noqa: F401
+from clients.CachedAuthClient import CachedAuthClient  # noqa: F401
 
 # Constants
 ALPHANUMERIC_PATTERN = r"^[a-zA-Z0-9]+$"

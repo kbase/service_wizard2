@@ -1,9 +1,9 @@
 from fastapi.requests import Request
 
-from src.dependencies.lifecycle import start_deployment
-from src.dependencies.status import get_all_dynamic_service_statuses, get_service_status_without_retries, get_version, get_status
-from src.rpc.common import handle_rpc_request
-from src.rpc.models import JSONRPCResponse
+from dependencies.lifecycle import start_deployment
+from dependencies.status import get_all_dynamic_service_statuses, get_service_status_without_retries, get_version, get_status
+from rpc.common import handle_rpc_request
+from rpc.models import JSONRPCResponse
 
 
 def list_service_status(request: Request, params: list[dict], jrpc_id: str) -> JSONRPCResponse:

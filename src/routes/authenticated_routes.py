@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Request, Header, Cookie
 
-from src.clients.CachedAuthClient import CachedAuthClient  # noqa: F401
-from src.dependencies.middleware import is_authorized, ALPHANUMERIC_PATTERN
+from clients.CachedAuthClient import CachedAuthClient  # noqa: F401
+from dependencies.middleware import is_authorized, ALPHANUMERIC_PATTERN
 
 router = APIRouter(
     tags=["authenticated"],

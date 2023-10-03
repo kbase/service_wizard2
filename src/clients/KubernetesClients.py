@@ -6,7 +6,7 @@ from fastapi.requests import Request
 from kubernetes import config
 from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api, V1Deployment
 
-from src.configs.settings import Settings
+from configs.settings import Settings
 
 
 class K8sClients:

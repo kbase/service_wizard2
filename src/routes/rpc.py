@@ -4,12 +4,12 @@ from fastapi import Request, APIRouter, HTTPException, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import Response, JSONResponse
 
-from src.rpc import authenticated_handlers, unauthenticated_handlers
-from src.rpc.common import validate_rpc_request, get_user_auth_roles
-from src.rpc.error_responses import (
+from rpc import authenticated_handlers, unauthenticated_handlers
+from rpc.common import validate_rpc_request, get_user_auth_roles
+from rpc.error_responses import (
     method_not_found,
 )
-from src.rpc.models import JSONRPCResponse
+from rpc.models import JSONRPCResponse
 
 router = APIRouter(
     tags=["rpc"],
@@ -32,6 +32,7 @@ admin_or_owner_required = {
     "ServiceWizard.stop": authenticated_handlers.stop,
 }
 
+# Use star unpacking to create a mapping of known routes
 known_methods = {**unauthenticated_routes_mapping, **admin_or_owner_required}
 
 

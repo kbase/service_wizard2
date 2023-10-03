@@ -4,8 +4,8 @@ import kubernetes
 import pytest
 from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api
 
-from src.clients.KubernetesClients import K8sClients
-from src.configs.settings import get_settings
+from clients.KubernetesClients import K8sClients
+from configs.settings import get_settings
 
 
 @pytest.fixture

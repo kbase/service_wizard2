@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from src.configs.settings import get_settings, EnvironmentVariableError
+from configs.settings import get_settings, EnvironmentVariableError
 
 
 @pytest.fixture

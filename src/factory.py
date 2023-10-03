@@ -8,14 +8,14 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 
-from src.clients.CachedAuthClient import CachedAuthClient
-from src.clients.CachedCatalogClient import CachedCatalogClient
-from src.clients.KubernetesClients import K8sClients
-from src.configs.settings import get_settings, Settings
-from src.fastapi_routes.authenticated_routes import router as sw2_authenticated_router
-from src.fastapi_routes.metrics_routes import router as metrics_router
-from src.fastapi_routes.rpc import router as sw2_rpc_router
-from src.fastapi_routes.unauthenticated_routes import router as sw2_unauthenticated_router
+from clients.CachedAuthClient import CachedAuthClient
+from clients.CachedCatalogClient import CachedCatalogClient
+from clients.KubernetesClients import K8sClients
+from configs.settings import get_settings, Settings
+from routes.authenticated_routes import router as sw2_authenticated_router
+from routes.metrics_routes import router as metrics_router
+from routes.rpc import router as sw2_rpc_router
+from routes.unauthenticated_routes import router as sw2_unauthenticated_router
 
 
 def create_app(

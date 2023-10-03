@@ -2,19 +2,16 @@ import os
 from unittest.mock import Mock
 
 import pytest
-from dotenv import load_dotenv
 from fastapi import Request
 
-from src.clients.CachedCatalogClient import CachedCatalogClient
-from src.clients.KubernetesClients import K8sClients
-from src.configs.settings import get_settings
+from clients.CachedCatalogClient import CachedCatalogClient
+from clients.KubernetesClients import K8sClients
+from configs.settings import get_settings
 
 
 @pytest.fixture(autouse=True)
 def mock_request():
     return get_example_mock_request()
-
-
 
 
 @pytest.fixture(autouse=True)
@@ -75,8 +72,10 @@ def get_example_mock_request():
     request.app.state.catalog_client.get_combined_module_info.return_value = mock_module_info
     request.app.state.catalog_client.list_service_volume_mounts.return_value = []
     request.app.state.catalog_client.get_secure_params.return_value = [{"param_name": "test_secure_param_name", "param_value": "test_secure_param_value"}]
-    request.app.state.k8s_clients = Mock(spec=K8sClients)
-    request.app.state.mock_module_info = mock_module_info
 
+    mock_k8s_clients = Mock(spec=K8sClients)
+    mock_k8s_clients.network_client = Mock()
+    request.app.state.k8s_clients = mock_k8s_clients
+    request.app.state.mock_module_info = mock_module_info
 
     return request

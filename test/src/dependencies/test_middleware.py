@@ -7,10 +7,10 @@
 # from kubernetes import config, client
 # from pytest_kind import KindCluster
 #
-# from src.clients.CatalogClient import Catalog
-# from src.configs.settings import get_settings
-# from src.dependencies.middleware import is_authorized
-# from src.factory import create_app
+# from clients.CatalogClient import Catalog
+# from configs.settings import get_settings
+# from dependencies.middleware import is_authorized
+# from factory import create_app
 #
 #
 # @pytest.fixture(autouse=True)

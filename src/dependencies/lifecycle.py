@@ -7,24 +7,16 @@ from fastapi import HTTPException
 from fastapi import Request
 from kubernetes.client import ApiException
 
-from src.clients.baseclient import ServerError
-from src.configs.settings import Settings  # noqa: F401
-from src.dependencies.k8_wrapper import (
+from clients.baseclient import ServerError
+from configs.settings import Settings  # noqa: F401
+from dependencies.k8_wrapper import (
     create_and_launch_deployment,
     create_clusterip_service,
     update_ingress_to_point_to_service,
     scale_replicas,
 )
-from src.dependencies.status import get_service_status_with_retries, lookup_module_info
-from src.models.models import DynamicServiceStatus
-
-
-class ServiceAlreadyExistsException(HTTPException):
-    """
-    Exception to be raised when a service already exists.
-    """
-
-    pass
+from dependencies.status import get_service_status_with_retries, lookup_module_info
+from models import DynamicServiceStatus
 
 
 def get_env(request, module_name, module_version) -> Dict[str, str]:
