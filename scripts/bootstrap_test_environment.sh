@@ -5,7 +5,7 @@ if pipenv --venv &>/dev/null; then
     echo "Pipenv environment already exists. No need to bootstrap"
 else
     # If Pipenv environment doesn't exist, create a new one
-    pipenv --python 3.11-service_wizard2
+    pipenv --python 3.12-service_wizard2
     echo "Created new Pipenv environment."
 
     # Install dependencies

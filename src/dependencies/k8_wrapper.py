@@ -1,4 +1,3 @@
-import logging
 import re
 import time
 from typing import Optional, List
@@ -47,22 +46,32 @@ def get_pods_in_namespace(
     return pod_list
 
 
-def v1_volume_mount_factory(mounts):
+def v1_volume_mount_factory(mounts: List[str]):
     volumes = []
     volume_mounts = []
 
     if mounts:
         for i, mount in enumerate(mounts):
+            if not mount:
+                raise ValueError(f"Empty mount provided at index {i}")
+
             mount_parts = mount.split(":")
+
+            # Check that mount string is split into 3 parts
             if len(mount_parts) != 3:
-                logging.error(f"Invalid mount format: {mount}")
+                raise ValueError(f"Invalid mount format: {mount}. Expected format: host_path:mount_path:ro/rw")
+
+            # Ensure third part is either "ro" or "rw"
+            if mount_parts[2] not in ["ro", "rw"]:
+                raise ValueError(f"Invalid permission in mount: {mount}. Expected 'ro' or 'rw' but got {mount_parts[2]}")
+
             volumes.append(client.V1Volume(name=f"volume-{i}", host_path=client.V1HostPathVolumeSource(path=mount_parts[0])))  # This is your host path
             volume_mounts.append(client.V1VolumeMount(name=f"volume-{i}", mount_path=mount_parts[1], read_only=bool(mount_parts[2] == "ro")))  # This is your container path
 
     return volumes, volume_mounts
 
 
-def sanitize_deployment_name(module_name, module_git_commit_hash):
+def sanitize_deployment_name(module_name: str, module_git_commit_hash: str):
     """
     Create a deployment name based on the module name and git commit hash.
     Adhere to Kubernetes API naming rules and create valid DNS labels.
@@ -80,7 +89,7 @@ def sanitize_deployment_name(module_name, module_git_commit_hash):
     return deployment_name, service_name
 
 
-def create_clusterip_service(request, module_name, module_git_commit_hash, labels) -> client.V1Service:
+def create_clusterip_service(request: Request, module_name: str, module_git_commit_hash: str, labels: dict[str]) -> client.V1Service:
     core_v1_api = get_k8s_core_client(request)
     deployment_name, service_name = sanitize_deployment_name(module_name, module_git_commit_hash)
 
@@ -121,43 +130,36 @@ def _ensure_ingress_exists(request):
     try:
         return networking_v1_api.read_namespaced_ingress(name="dynamic-services", namespace=settings.namespace)
     except ApiException as e:
-        if e.status == 404:
+        if e.status == 404:  # Ingress Not Found
             return networking_v1_api.create_namespaced_ingress(namespace=settings.namespace, body=ingress)
-        else:
-            raise
+        raise
 
 
-def _path_exists_in_ingress(ingress, path):
+def path_exists_in_ingress(ingress, path) -> bool:
     """Check if a path already exists in an ingress with one rule only"""
-    if ingress.spec.rules[0].http:
-        for existing_path in ingress.spec.rules[0].http.paths:
-            if existing_path.path == path:
-                return True
+    if ingress.spec.rules and ingress.spec.rules[0].http:
+        return any(existing_path.path == path for existing_path in ingress.spec.rules[0].http.paths)
     return False
 
 
-class InvalidIngressError(Exception):
-    pass
-
-
 def _update_ingress_with_retries(request, new_path, namespace, retries=3):
-    for retry in range(retries):
+    for attempt in range(retries):
         try:
             ingress = _ensure_ingress_exists(request)
             # Initialize http attribute with an empty paths list if it is None
             if ingress.spec.rules[0].http is None:
                 ingress.spec.rules[0].http = V1HTTPIngressRuleValue(paths=[])
             # Only append the path if it doesn't exist already
-            if not _path_exists_in_ingress(ingress, new_path.path):
+            if not path_exists_in_ingress(ingress, new_path.path):
                 ingress.spec.rules[0].http.paths.append(new_path)
             get_k8s_networking_client(request).replace_namespaced_ingress(name=ingress.metadata.name, namespace=namespace, body=ingress)
             break  # if the operation was successful, break the retry loop
         except ApiException as e:
-            if e.status not in {409, 422} or retry == retries - 1:
-                # re-raise the exception on the last retry, or if the error is not a conflict
-                raise
-            else:
+            if e.status in {409, 422} and attempt < retries - 1:
+                # Sleep and retry if the error is a conflict, and we haven't reached the max retries
                 time.sleep(1)
+                continue
+            raise
 
 
 def update_ingress_to_point_to_service(request: Request, module_name: str, git_commit_hash: str):
@@ -168,7 +170,6 @@ def update_ingress_to_point_to_service(request: Request, module_name: str, git_c
     path = f"/{settings.external_ds_url.split('/')[-1]}/{module_name}.{git_commit_hash}(/|$)(.*)"
     new_path = V1HTTPIngressPath(path=path, path_type="ImplementationSpecific", backend=V1IngressBackend(service={"name": service_name, "port": {"number": 5000}}))
     _update_ingress_with_retries(request=request, new_path=new_path, namespace=namespace)
-    print(123)
 
 
 def create_and_launch_deployment(request, module_name, module_git_commit_hash, image, labels, annotations, env, mounts) -> client.V1LabelSelector:

@@ -1,16 +1,15 @@
+import logging
 import os
 from glob import glob
 
 import pytest
 from dotenv import load_dotenv
 
+logging.basicConfig(level=logging.INFO)
+
 
 def _as_module(fixture_path: str) -> str:
     return fixture_path.replace("/", ".").replace("\\", ".").replace(".py", "")
-
-
-def pytest_collectreport(report):
-    print("CONFTEST loading all fixtures")
 
 
 @pytest.fixture(autouse=True)

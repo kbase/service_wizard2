@@ -51,7 +51,8 @@ def create_app(
 
     app = FastAPI(root_path=settings.root_path)  # type: FastAPI
 
-    # Set up the state of the app with various clients. Note, when running multiple threads, these will each have their own cache
+    # Set up the state of the app with various clients.
+    # Note, when running multiple threads, these will each have their own cache
     app.state.settings = settings
     app.state.catalog_client = catalog_client or CachedCatalogClient(settings=settings)
     app.state.k8s_clients = k8s_clients if k8s_clients else K8sClients(settings=settings)
@@ -61,7 +62,7 @@ def create_app(
     app.include_router(sw2_authenticated_router)
     app.include_router(sw2_unauthenticated_router)
     app.include_router(sw2_rpc_router)
-    # Middleware Do we need this?
+
     app.add_middleware(GZipMiddleware, minimum_size=1000)
 
     if os.environ.get("METRICS_USERNAME") and os.environ.get("METRICS_PASSWORD"):

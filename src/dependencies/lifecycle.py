@@ -45,7 +45,7 @@ def get_env(request, module_name, module_version) -> Dict[str, str]:
     return environ_map
 
 
-def get_volume_mounts(request, module_name, module_version):
+def get_volume_mounts(request, module_name, module_version) -> list[str]:
     """
     Get the volume mounts from the KBase Catalog for a module and set it up for the container to use.
     :param request:  The request object

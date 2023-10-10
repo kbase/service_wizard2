@@ -62,7 +62,7 @@ def get_service_status_with_retries(request, module_name, version, retries=10) -
     :return:
     """
     # Validate request in catalog first
-    lookup_module_info(request=request, module_name=module_name, git_commit=version)  # type: 'CatalogModuleInfo'
+    lookup_module_info(request=request, module_name=module_name, git_commit=version)
     # Then check kubernetes
     for _ in range(retries):
         try:
