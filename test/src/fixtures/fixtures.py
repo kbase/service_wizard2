@@ -10,6 +10,7 @@ from kubernetes.client import V1Ingress, V1IngressSpec, V1IngressRule
 from clients.CachedCatalogClient import CachedCatalogClient
 from clients.KubernetesClients import K8sClients
 from configs.settings import get_settings
+from models import DynamicServiceStatus
 
 
 @pytest.fixture(autouse=True)
@@ -108,3 +109,29 @@ def get_example_ingress():
 
     ingress_spec.rules = [V1IngressRule(host="ci.kbase.us", http=None)]
     return ingress
+
+
+@pytest.fixture(autouse=True)
+def example_dynamic_service_status_up():
+    return get_example_dynamic_service_status(replicas=1)
+
+
+@pytest.fixture(autouse=True)
+def example_dynamic_service_status_down():
+    return get_example_dynamic_service_status(replicas=0)
+
+
+def get_example_dynamic_service_status(replicas=1):
+    return DynamicServiceStatus(
+        url="test_url",
+        version="test_version",
+        module_name="test_module_name",
+        release_tags=["test_tag"],
+        git_commit_hash="test_hash",
+        deployment_name="test_deployment_name",
+        replicas=replicas,
+        updated_replicas=1,
+        ready_replicas=1,
+        available_replicas=1,
+        unavailable_replicas=1,
+    )

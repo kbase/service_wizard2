@@ -32,14 +32,16 @@ from dependencies.k8_wrapper import (
     get_k8s_deployments,
     delete_deployment,
     scale_replicas,
+    DuplicateLabelsException,
+    get_logs_for_first_pod_in_deployment,
 )
 
 # Import the necessary Kubernetes client classes if not already imported
 
 
 # Reusable Sample Data
-field_selector = "test-field_selector"
-label_selector = "test-label-selector"
+sample_field_selector = "test-field_selector"
+sample_label_selector = "test-label-selector"
 
 # Sample Data
 sample_module_name = "test_module"
@@ -67,7 +69,7 @@ sample_deployment = client.V1Deployment(
 def test_get_pods_in_namespace(mock_request):
     namespace = mock_request.app.state.settings.namespace
     corev1api = mock_request.app.state.k8_clients.corev1api
-    get_pods_in_namespace(corev1api, field_selector=field_selector, label_selector=label_selector)
+    get_pods_in_namespace(corev1api, field_selector=sample_field_selector, label_selector=sample_label_selector)
     assert corev1api.list_namespaced_pod.call_args == call(namespace, field_selector="test-field_selector", label_selector="test-label-selector")
 
 
@@ -317,6 +319,7 @@ def test_get_k8s_deployment_status_from_label(mock_get_deployment_status, mock_r
 
 @patch("dependencies.k8_wrapper.get_k8s_all_service_status_cache")
 def test_get_k8s_deployments(mock_get_k8s_all_service_status_cache, mock_request):
+    expected_label_selector = "us.kbase.dynamicservice=true"
     all_service_status_cache = MagicMock(spec=LRUCache)
     mock_request.app.state.k8s_clients.all_service_status_cache = all_service_status_cache
     mock_get_k8s_all_service_status_cache.return_value = all_service_status_cache
@@ -326,23 +329,23 @@ def test_get_k8s_deployments(mock_get_k8s_all_service_status_cache, mock_request
     all_service_status_cache.get.return_value = example_deployments
 
     assert get_k8s_deployments(mock_request) == example_deployments
-    assert all_service_status_cache.get.called_with(label_selector, None)
+
+    all_service_status_cache.get.assert_called_with(expected_label_selector, None)
+
     assert all_service_status_cache.set.call_count == 0
 
     # Scenario 2: Deployments not in cache, fetch from K8s with no deployments matching label
     all_service_status_cache.get.return_value = None
     get_k8s_deployments(mock_request)
-    assert mock_request.app.state.k8s_clients.app_client.list_namespaced_deployment.called_with(
-        mock_request.app.state.settings.namespace, label_selector="us.kbase.dynamicservice=true"
-    )
-    assert all_service_status_cache.set.called_with(label_selector, None)
+    mock_request.app.state.k8s_clients.app_client.list_namespaced_deployment.assert_called_with(mock_request.app.state.settings.namespace, label_selector=expected_label_selector)
+    all_service_status_cache.set.assert_called_with(expected_label_selector, mock_request.app.state.k8s_clients.app_client.list_namespaced_deployment().items)
 
     # Scenario 3: Deployments not in cache, fetch from K8s with one or more deployments matching label
     all_service_status_cache.get.return_value = None
     mock_request.app.state.k8s_clients.app_client.list_namespaced_deployment.return_value.items = example_deployments
     get_k8s_deployments(mock_request)
     assert get_k8s_deployments(mock_request) == example_deployments
-    all_service_status_cache.set.assert_called_with("us.kbase.dynamicservice=true", example_deployments)
+    all_service_status_cache.set.assert_called_with(expected_label_selector, example_deployments)
 
 
 @patch("dependencies.k8_wrapper.sanitize_deployment_name", return_value=("mock_deployment_name", "mock_service_name"))
@@ -364,3 +367,44 @@ def test_scale_replicas(mock_query_deployment_status, mock_request):
     mock_request.app.state.k8s_clients.app_client.replace_namespaced_deployment.assert_called_once_with(
         name="mock_deployment_name", namespace=mock_request.app.state.settings.namespace, body=sample_deployment
     )
+
+
+@patch("dependencies.k8_wrapper.check_service_status_cache")
+@patch("dependencies.k8_wrapper.get_k8s_all_service_status_cache")
+def test__get_deployment_status(mock_get_k8s_all_service_status_cache, mock_check_service_status_cache, mock_request):
+    """Testing through the public interface"""
+    mock_request.app.state.k8s_clients.service_status_cache = MagicMock()
+    #
+    # # Scenario 1: Deployment is in the cache
+    mock_check_service_status_cache.return_value = sample_deployment
+    scale_replicas(mock_request, sample_module_name, sample_git_commit_hash, 123)
+
+    # # Scenario 2: Deployment is not in the cache, need to look up k8 api
+    mock_check_service_status_cache.return_value = None
+    mock_request.app.state.k8s_clients.app_client.list_namespaced_deployment.return_value.items = [sample_deployment]
+    scale_replicas(mock_request, sample_module_name, sample_git_commit_hash, 123)
+
+    # # Scenario 3: Deployment is not in the cache, need to look up k8 api but multiple deployments match
+    mock_check_service_status_cache.return_value = None
+    mock_request.app.state.k8s_clients.app_client.list_namespaced_deployment.return_value.items = [sample_deployment, sample_deployment]
+    with pytest.raises(DuplicateLabelsException):
+        scale_replicas(mock_request, sample_module_name, sample_git_commit_hash, 123)
+
+
+def test_get_logs_for_first_pod_in_deployment(mock_request):
+    # Pod is found
+    mock_request.app.state.k8s_clients.core_client.list_namespaced_pod.return_value.items = [MagicMock()]
+    get_logs_for_first_pod_in_deployment(mock_request, sample_module_name, sample_git_commit_hash)
+    mock_request.app.state.k8s_clients.core_client.list_namespaced_pod.assert_called_once_with(
+        mock_request.app.state.settings.namespace, label_selector="us.kbase.module.module_name=test_module,us.kbase.module.git_commit_hash=1234567"
+    )
+    mock_request.app.state.k8s_clients.core_client.read_namespaced_pod_log.assert_called_once_with(
+        name=mock_request.app.state.k8s_clients.core_client.list_namespaced_pod().items[0].metadata.name, namespace=mock_request.app.state.settings.namespace, timestamps=True
+    )
+    # No Pod is found
+    label_selector_text = f"us.kbase.module.module_name={sample_module_name.lower()}," + f"us.kbase.module.git_commit_hash={sample_git_commit_hash}"
+
+    mock_request.app.state.k8s_clients.core_client.list_namespaced_pod.return_value.items = None
+    expected_message = (f"No Matching Pods in namespace:{mock_request.app.state.settings.namespace} could be found with label_selector" f"={label_selector_text}",) * 2
+
+    assert get_logs_for_first_pod_in_deployment(mock_request, sample_module_name, sample_git_commit_hash) == expected_message

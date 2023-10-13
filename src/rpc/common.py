@@ -70,9 +70,7 @@ def get_user_auth_roles(request: Request, jrpc_id: str, method: str) -> tuple[An
                 error=f"{e.detail}",
             ),
         )
-    except:  # noqa: E722
-        # Something unexpected happened, but we STILL don't want to authorize the request!
-        raise
+    # Something unexpected happened, but we STILL don't want to authorize the request!
 
 
 def handle_rpc_request(

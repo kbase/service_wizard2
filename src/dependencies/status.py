@@ -7,7 +7,7 @@ from fastapi import Request, HTTPException
 from clients.baseclient import ServerError
 from configs.settings import get_settings
 from dependencies.k8_wrapper import query_k8s_deployment_status, get_k8s_deployments, DuplicateLabelsException
-from models.models import DynamicServiceStatus, CatalogModuleInfo
+from models import DynamicServiceStatus, CatalogModuleInfo
 
 
 def lookup_module_info(request: Request, module_name: str, git_commit: str) -> CatalogModuleInfo:
@@ -89,10 +89,10 @@ def get_dynamic_service_status_helper(request, module_name, version) -> DynamicS
     """
     Retrieve the status of a service based on the module version and git commit hash.
     :param request: The request object used to retrieve module information.
-    :param version:
-    :param module_name:
-
+    :param version: The version of the module requested (not normalized).
+    :param module_name: The name of the module.
     :return: The service status.
+    :raises HTTPException: If the service is not found with the given module name and version.
     """
 
     module_info = lookup_module_info(request=request, module_name=module_name, git_commit=version)  # type: 'CatalogModuleInfo'
@@ -117,6 +117,11 @@ def get_dynamic_service_status_helper(request, module_name, version) -> DynamicS
         raise HTTPException(status_code=404, detail=f"No dynamic service found with module_name={module_name} and version={version}")
 
 
+class IncompleteDeploymentAnnotationError(Exception):
+    def __init__(self, deployment_name):
+        super().__init__(f"Deployment '{deployment_name}' has missing or None 'module_name' or 'git_commit_hash' annotations.")
+
+
 def get_all_dynamic_service_statuses(request: Request, module_name, module_version) -> List[DynamicServiceStatus]:
     if module_name or module_version:
         logging.debug("dropping list_service_status params since SW1 doesn't use them")
@@ -136,11 +141,14 @@ def get_all_dynamic_service_statuses(request: Request, module_name, module_versi
     for deployment in deployment_statuses:
         deployment = deployment  # type: 'V1Deployment'
         try:
-            module_name = deployment.metadata.annotations["module_name"]
-            git_commit = deployment.metadata.annotations["git_commit_hash"]
-        except KeyError:
+            module_name = deployment.metadata.annotations.get("module_name")
+            git_commit = deployment.metadata.annotations.get("git_commit_hash")
+            if not module_name or not git_commit:
+                raise IncompleteDeploymentAnnotationError(deployment.metadata.name)
+        except IncompleteDeploymentAnnotationError:
             # If someone deployed a bad service into this namespace, this will protect this query from failing
             continue
+
         module_info = lookup_module_info(request=request, module_name=module_name, git_commit=git_commit)  # type: 'CatalogModuleInfo'
         dynamic_service_statuses.append(
             DynamicServiceStatus(
@@ -157,6 +165,17 @@ def get_all_dynamic_service_statuses(request: Request, module_name, module_versi
                 unavailable_replicas=deployment.status.unavailable_replicas,
             )
         )
+
+    # Deployments were found, but none of them had the correct annotations, they were missing
+    # deployment.metadata.annotations.get("module_name")
+    # deployment.metadata.annotations.get("git_commit_hash")
+    if len(dynamic_service_statuses) == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No dynamic services found in kubernetes cluster with namespace={get_settings().namespace} and labels=dynamic-service=true! Or "
+            f"they were found and they were missing the module_name and git_commit_hash annotations!",
+        )
+
     return dynamic_service_statuses
 
 
