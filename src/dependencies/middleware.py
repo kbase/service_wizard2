@@ -34,7 +34,7 @@ def is_authorized(
     if not authorization and not kbase_session:
         logging.warning(f"No authorization header or kbase_session cookie provided for {method} payload: {payload}")
         raise HTTPException(
-            status_code=400,
+            status_code=401,
             detail=f"Please provide the 'Authorization' header or 'kbase_session' cookie for {method} payload: {payload} ",
         )
     try:

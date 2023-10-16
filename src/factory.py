@@ -13,7 +13,7 @@ from clients.KubernetesClients import K8sClients
 from configs.settings import get_settings, Settings
 from routes.authenticated_routes import router as sw2_authenticated_router
 from routes.metrics_routes import router as metrics_router
-from routes.rpc import router as sw2_rpc_router
+from routes.rpc_route import router as sw2_rpc_router
 from routes.unauthenticated_routes import router as sw2_unauthenticated_router
 
 

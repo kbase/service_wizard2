@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 
-from configs.settings import Settings  # noqa: F401
+
 from dependencies.status import get_version, get_status
 
 router = APIRouter(
@@ -18,9 +18,3 @@ def status(request: Request):
 @router.get("/version")
 def version(request: Request):
     return get_version(request)
-
-
-@router.get("/sentry-debug")
-async def trigger_error():
-    # This endpoint is used to test the Sentry integration.
-    division_by_zero = 1 / 0  # noqa: F841

@@ -36,7 +36,6 @@ def validate_rpc_request(body):
 
     if not isinstance(method, str) and not isinstance(params, list):
         raise ServerError(message=f"`method` must be a valid SW1 method string. Params must be a dictionary. {json_data}", code=-32600, name="Invalid Request")
-    print(type(method), type(params), type(jrpc_id))
     return method, params, jrpc_id
 
 
@@ -102,7 +101,6 @@ def handle_rpc_request(
 
     try:
         result = action(request, module_name, module_version)
-        print("ABOUT TO RETURN RESULT", result)
         return JSONRPCResponse(id=jrpc_id, result=[result])
     except ServerError as e:
         traceback_str = traceback.format_exc()
