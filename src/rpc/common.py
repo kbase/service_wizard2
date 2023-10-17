@@ -80,7 +80,7 @@ def handle_rpc_request(
 ) -> JSONRPCResponse:
     method_name = action.__name__
     try:
-        params = params[0]
+        first_param = params[0]
         if not isinstance(params, dict):
             return JSONRPCResponse(
                 id=jrpc_id,
@@ -88,16 +88,16 @@ def handle_rpc_request(
                     message=f"Invalid params for ServiceWizard.{method_name}",
                     code=-32602,
                     name="Invalid params",
-                    error=f"Params must be a dictionary. Got {type(params)}",
+                    error=f"Params must be a dictionary. Got {type(first_param)}",
                 ),
             )
     except IndexError:
         return no_params_passed(method=method_name, jrpc_id=jrpc_id)
 
     # This is for backwards compatibility with SW1 logging functions, as they pass in the "service" dictionary instead of the module_name and version
-    service = params.get("service", {})
-    module_name = service.get("module_name", params.get("module_name"))
-    module_version = service.get("version", params.get("version"))
+    service = first_param.get("service", {})
+    module_name = service.get("module_name", first_param.get("module_name"))
+    module_version = service.get("version", first_param.get("version"))
 
     try:
         result = action(request, module_name, module_version)

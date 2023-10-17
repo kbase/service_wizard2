@@ -75,3 +75,56 @@ def test_model_dump():
     assert "version" in serialized_data_with_error
     assert "result" not in serialized_data_with_error
     assert serialized_data_with_error["error"]["message"] == "An error occurred"
+
+
+# Tests for ErrorResponse
+
+
+def test_full_error_response_creation():
+    data = {"message": "An error occurred", "code": 500, "name": "InternalServerError", "error": "Some error string"}
+    response = ErrorResponse(**data)
+    assert response.message == data["message"]
+    assert response.code == data["code"]
+    assert response.name == data["name"]
+    assert response.error == data["error"]
+
+
+# Tests for JSONRPCResponse
+
+
+def test_full_jsonrpc_response_creation():
+    data = {"version": "1.0", "id": "some-id", "result": "Success", "error": None}
+    response = JSONRPCResponse(**data)
+    assert response.version == data["version"]
+    assert response.id == data["id"]
+    assert response.result == data["result"]
+    assert response.error == data["error"]
+
+
+def test_jsonrpc_model_dump_with_both_fields():
+    data = {
+        "result": "Success",
+        "error": {
+            "message": "An error occurred",
+            "code": 400,
+            "name": "BadRequest",
+        },
+    }
+    response = JSONRPCResponse(**data)
+    serialized_data = response.model_dump()
+    assert "error" in serialized_data
+    assert "result" in serialized_data
+
+
+def test_jsonrpc_model_dump_with_id():
+    data = {"id": "some-id", "result": "Success"}
+    response = JSONRPCResponse(**data)
+    serialized_data = response.model_dump()
+    assert serialized_data["id"] == "some-id"
+
+
+def test_jsonrpc_model_dump_without_id():
+    data = {"id": None, "result": "Success"}
+    response = JSONRPCResponse(**data)
+    serialized_data = response.model_dump()
+    assert "id" not in serialized_data

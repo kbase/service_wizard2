@@ -6,11 +6,11 @@ from clients.CatalogClient import Catalog
 from configs.settings import Settings, get_settings
 
 
-def get_module_name_hash(module_name: str = None):
+def get_module_name_hash(module_name: str):
     """
     Calculate the MD5 hash of a module name and return the first 20 characters of the hexadecimal digest.
     This is not a valid DNS name as it doesn't guarantee to start or end with an alphanumeric character.
-    This doesn't actually get used anywhere, its just here because it was like this in SW1
+    This doesn't actually get used anywhere, it's just here because it was like this in SW1
     :param module_name: The name of the module.
     :return: The MD5 hash of the module name.
     """
@@ -36,7 +36,7 @@ class CachedCatalogClient:
 
     cc: Catalog
 
-    def __init__(self, settings: Settings, catalog: Catalog = None):
+    def __init__(self, settings: Settings, catalog: Catalog | None = None):
         settings = get_settings() if not settings else settings
         self.cc = Catalog(url=settings.catalog_url, token=settings.catalog_admin_token) if not catalog else catalog
 

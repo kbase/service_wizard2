@@ -89,7 +89,7 @@ def sanitize_deployment_name(module_name: str, module_git_commit_hash: str):
     return deployment_name, service_name
 
 
-def create_clusterip_service(request: Request, module_name: str, module_git_commit_hash: str, labels: dict[str]) -> client.V1Service:
+def create_clusterip_service(request: Request, module_name: str, module_git_commit_hash: str, labels: dict[str, str]) -> client.V1Service:
     core_v1_api = get_k8s_core_client(request)
     deployment_name, service_name = sanitize_deployment_name(module_name, module_git_commit_hash)
 

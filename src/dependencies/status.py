@@ -95,9 +95,9 @@ def get_dynamic_service_status_helper(request, module_name, version) -> DynamicS
     :raises HTTPException: If the service is not found with the given module name and version.
     """
 
-    module_info = lookup_module_info(request=request, module_name=module_name, git_commit=version)  # type: 'CatalogModuleInfo'
+    module_info = lookup_module_info(request=request, module_name=module_name, git_commit=version)
 
-    deployment = query_k8s_deployment_status(request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash)  # type: 'V1Deployment'
+    deployment = query_k8s_deployment_status(request, module_name=module_name, module_git_commit_hash=module_info.git_commit_hash)
     if deployment:
         return DynamicServiceStatus(
             url=module_info.url,
@@ -139,7 +139,7 @@ def get_all_dynamic_service_statuses(request: Request, module_name, module_versi
     # TODO see if you need to get the list based on running deployments or based on the catalog
     dynamic_service_statuses = []
     for deployment in deployment_statuses:
-        deployment = deployment  # type: 'V1Deployment'
+        deployment = deployment
         try:
             module_name = deployment.metadata.annotations.get("module_name")
             git_commit = deployment.metadata.annotations.get("git_commit_hash")
@@ -149,7 +149,7 @@ def get_all_dynamic_service_statuses(request: Request, module_name, module_versi
             # If someone deployed a bad service into this namespace, this will protect this query from failing
             continue
 
-        module_info = lookup_module_info(request=request, module_name=module_name, git_commit=git_commit)  # type: 'CatalogModuleInfo'
+        module_info = lookup_module_info(request=request, module_name=module_name, git_commit=git_commit)
         dynamic_service_statuses.append(
             DynamicServiceStatus(
                 url=module_info.url,

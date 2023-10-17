@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Any
 
 from cacheout import LRUCache
 from fastapi.requests import Request
@@ -89,10 +89,10 @@ def get_k8s_all_service_status_cache(request: Request) -> LRUCache:
     return request.app.state.k8s_clients.all_service_status_cache
 
 
-def check_service_status_cache(request: Request, label_selector_text) -> V1Deployment:
+def check_service_status_cache(request: Request, label_selector_text: str) -> V1Deployment:
     cache = get_k8s_service_status_cache(request)
     return cache.get(label_selector_text, None)
 
 
-def populate_service_status_cache(request: Request, label_selector_text, data: list):
+def populate_service_status_cache(request: Request, label_selector_text: str, data: V1Deployment):
     get_k8s_service_status_cache(request).set(label_selector_text, data)

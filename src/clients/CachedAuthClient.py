@@ -23,7 +23,7 @@ class UserAuthRoles:
 
 
 class CachedAuthClient:
-    def __init__(self, settings: Settings = None, valid_tokens_cache: LRUCache = None):
+    def __init__(self, settings: Settings|None = None, valid_tokens_cache: LRUCache|None = None):
         """
         Initialize the CachedAuthClient
         :param settings: The settings to use, or use the default settings if not provided

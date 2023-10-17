@@ -20,7 +20,7 @@ from routes.unauthenticated_routes import router as sw2_unauthenticated_router
 def create_app(
     catalog_client: Optional[CachedCatalogClient] = None,
     auth_client: Optional[CachedAuthClient] = None,
-    k8s_clients: K8sClients = None,
+    k8s_clients: Optional[K8sClients] = None,
     settings: Optional[Settings] = None,
 ) -> FastAPI:
     """

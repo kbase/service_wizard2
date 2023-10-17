@@ -54,12 +54,12 @@ def get_volume_mounts(request, module_name, module_version) -> list[str]:
     :return:
     """
     volume_mounts = request.app.state.catalog_client.list_service_volume_mounts(module_name, module_version)
+    mounts = []
     if len(volume_mounts) > 0:
-        mounts = []
         for vol in volume_mounts:
             mount_type = "ro" if vol["read_only"] > 0 else "rw"
             mounts.append(f"{vol['host_dir']}:{vol['container_dir']}:{mount_type}")
-        return mounts
+    return mounts
 
 
 def _setup_metadata(module_name, requested_module_version, git_commit_hash, version, git_url) -> Tuple[Dict, Dict]:

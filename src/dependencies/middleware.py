@@ -18,8 +18,8 @@ def is_authorized(
         description="KBase auth token",
     ),
     kbase_session: str = Cookie(None, regex=ALPHANUMERIC_PATTERN),
-    method: str = None,
-    payload: dict = None,
+    method: str | None = None,
+    payload: dict | None = None,
 ) -> bool:
     """
     Check if the user is authorized to access the endpoint in general.
