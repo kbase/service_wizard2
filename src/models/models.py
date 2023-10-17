@@ -41,7 +41,7 @@ class DynamicServiceStatus(BaseModel):
     git_commit_hash: str  # Git commit hash of the service
     status: ServiceStatus  # Service status based on replica counts
     version: str  # Version of the service
-    hash: str|None = None
+    hash: str | None = None
     release_tags: List[str]  # List of release tags for the service
     url: str  # URL of the service
     module_name: str  # Name of the service module

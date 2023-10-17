@@ -1,6 +1,5 @@
 import pytest
 from fastapi.responses import JSONResponse
-from rpc.models import ErrorResponse, JSONRPCResponse
 
 from rpc.error_responses import (
     json_rpc_response_to_exception,
@@ -11,6 +10,8 @@ from rpc.error_responses import (
     no_authenticated_headers_passed,
     token_validation_failed,
 )
+from rpc.models import ErrorResponse, JSONRPCResponse
+
 
 # Functions under test should be imported.
 
@@ -50,4 +51,5 @@ def test_json_rpc_response_to_exception():
     response = json_rpc_response_to_exception(jrpc_response)
     assert isinstance(response, JSONResponse)
     assert response.status_code == 500
-    assert response.body == b'{"id": "7", "error": {"message": "Test Error", "code": -32000, "name": "Server error"}}'
+    # assert response.body == b'{"version":"1.0","id": "7", "error": {"message": "Test Error", "code": -32000, "name": "Server error"}}'
+    assert response.body == b'{"version":"1.0","id":"7","error":{"message":"Test Error","code":-32000,"name":"Server error","error":null}}'

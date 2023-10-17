@@ -1,8 +1,7 @@
-import pytest
 from unittest.mock import patch, Mock
-from fastapi import FastAPI
 
-from factory import create_app
+import pytest
+from fastapi import FastAPI
 
 from factory import create_app, sw2_authenticated_router, sw2_unauthenticated_router, sw2_rpc_router
 from routes.metrics_routes import router as metrics_router

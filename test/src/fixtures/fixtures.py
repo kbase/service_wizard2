@@ -77,15 +77,15 @@ def get_example_mock_request():
         "docker_img_name": "test_img_name",
     }
 
-    request.app.state.catalog_client = MagicMock(spec=CachedCatalogClient)
+    request.app.state.catalog_client = MagicMock(autospec=CachedCatalogClient)
     request.app.state.catalog_client.get_combined_module_info.return_value = mock_module_info
     request.app.state.catalog_client.list_service_volume_mounts.return_value = []
     request.app.state.catalog_client.get_secure_params.return_value = [{"param_name": "test_secure_param_name", "param_value": "test_secure_param_value"}]
 
-    mock_k8s_clients = MagicMock(spec=K8sClients)
-    mock_k8s_clients.network_client = MagicMock(spec=NetworkingV1Api)
-    mock_k8s_clients.app_client = MagicMock(spec=AppsV1Api)
-    mock_k8s_clients.core_client = MagicMock(spec=CoreV1Api)
+    mock_k8s_clients = MagicMock(autospec=K8sClients)
+    mock_k8s_clients.network_client = MagicMock(autospec=NetworkingV1Api)
+    mock_k8s_clients.app_client = MagicMock(autospec=AppsV1Api)
+    mock_k8s_clients.core_client = MagicMock(autospec=CoreV1Api)
     request.app.state.k8s_clients = mock_k8s_clients
     request.app.state.mock_module_info = mock_module_info
 

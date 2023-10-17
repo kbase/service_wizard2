@@ -1,6 +1,8 @@
 import pytest
 from pydantic import ValidationError
+
 from rpc.models import ErrorResponse, JSONRPCResponse
+
 
 # 1. Test that the models can be instantiated with valid data.
 

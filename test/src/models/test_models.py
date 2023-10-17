@@ -1,4 +1,3 @@
-import pytest
 from models import DynamicServiceStatus, ServiceStatus, ServiceHealth
 
 

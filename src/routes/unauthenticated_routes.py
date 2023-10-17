@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request
 
-
 from dependencies.status import get_version, get_status
 
 router = APIRouter(

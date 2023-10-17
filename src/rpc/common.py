@@ -6,6 +6,7 @@ from fastapi import HTTPException, Request
 
 from clients.CachedAuthClient import UserAuthRoles, CachedAuthClient  # noqa: F401
 from clients.baseclient import ServerError
+
 from rpc.error_responses import (
     no_params_passed,
 )
@@ -81,7 +82,7 @@ def handle_rpc_request(
     method_name = action.__name__
     try:
         first_param = params[0]
-        if not isinstance(params, dict):
+        if not isinstance(first_param, dict):
             return JSONRPCResponse(
                 id=jrpc_id,
                 error=ErrorResponse(
