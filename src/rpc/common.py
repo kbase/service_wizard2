@@ -6,14 +6,13 @@ from fastapi import HTTPException, Request
 
 from clients.CachedAuthClient import UserAuthRoles, CachedAuthClient  # noqa: F401
 from clients.baseclient import ServerError
-
 from rpc.error_responses import (
     no_params_passed,
 )
 from rpc.models import ErrorResponse, JSONRPCResponse
 
 
-def validate_rpc_request(body):
+def validate_rpc_request(body) -> tuple[str, list[dict], str]:
     """
     Validate the JSON-RPC request body to ensure methods and params are present and of the correct type.
     :param body: The JSON-RPC request body

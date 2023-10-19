@@ -82,4 +82,4 @@ def sample_catalog_module_info(module_name="test_module", git_commit_hash="test_
 def assert_exception_correct(got: Exception, expected: Exception):
     err = "".join(traceback.TracebackException.from_exception(got).format())
     assert got.args == expected.args, err
-    assert type(got) == type(expected)
+    assert type(got) == type(expected)  # noqa E721

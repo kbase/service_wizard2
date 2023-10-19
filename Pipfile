@@ -29,4 +29,3 @@ pytest_kind = "==22.11.1"
 
 [requires]
 python_version = "3.12"
-

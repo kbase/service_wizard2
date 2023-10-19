@@ -47,7 +47,7 @@ def test_whoami_with_bad_auth(app):
     assert response.json() == expected_response
 
     # Test with authorization header
-    test_client.headers["Authorization"] = f"invalid_header"
+    test_client.headers["Authorization"] = "invalid_header"
     response = test_client.get(
         "/whoami/",
     )

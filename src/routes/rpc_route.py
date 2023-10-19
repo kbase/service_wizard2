@@ -18,5 +18,4 @@ async def get_body(request: Request):
 @router.post("/rpc/", response_model=None)
 @router.post("/", response_model=None)
 def json_rpc(request: Request, body: bytes = Depends(get_body)) -> Response | HTTPException | JSONRPCResponse | JSONResponse:
-    response = json_rpc_helper(request, body)
-    return response
+    return json_rpc_helper(request, body)

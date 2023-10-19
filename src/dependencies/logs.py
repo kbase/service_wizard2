@@ -18,7 +18,7 @@ def get_service_log(request: Request, module_name: str, module_version: str) -> 
     :param module_version:  The module version, normalization not required
     :return: Logs for a single pod in the deployment
     """
-    user_auth_roles = request.state.user_auth_roles  # type: UserAuthRoles
+    user_auth_roles = request.state.user_auth_roles
     module_info = lookup_module_info(request, module_name, module_version)
     tags = module_info.release_tags
 

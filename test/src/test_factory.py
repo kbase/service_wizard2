@@ -51,6 +51,8 @@ def test_create_app_with_defaults(mock_env_vars, mock_clients):
     for path in metrics_router.routes:
         assert path.path in all_paths
 
+    mock_sentry_init.assert_called_once_with(dsn="mock_sentry_dsn", traces_sample_rate=1.0, http_proxy=None, environment="https://ci.kbase.us/dynamic_services")
+
 
 def test_create_app_without_metrics(mock_env_vars, mock_clients, monkeypatch):
     monkeypatch.delenv("METRICS_USERNAME", raising=False)
@@ -64,6 +66,7 @@ def test_create_app_without_metrics(mock_env_vars, mock_clients, monkeypatch):
     # Test the inclusion of routers
     router_names = [r.name for r in app.routes]
     assert "metrics_router" not in router_names
+    mock_sentry_init.assert_called_once_with(dsn="mock_sentry_dsn", traces_sample_rate=1.0, http_proxy=None, environment="https://ci.kbase.us/dynamic_services")
 
 
 # You can expand with more test functions or scenarios as needed
