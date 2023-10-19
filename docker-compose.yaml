@@ -1,6 +1,7 @@
 version: '3'
 
 # This docker-compose is for developer convenience, not for running in production.
+# Be careful as this mounts in your kubeconfig file into here, giving this application access to your k8 connections
 
 services:
 
@@ -14,4 +15,6 @@ services:
     ports:
       - "5001:5000"
     env_file:
-        - .env
+      - .env
+    volumes:
+        - ~/.kube/config:/root/.kube/config

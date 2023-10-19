@@ -1,13 +1,13 @@
 from fastapi.responses import JSONResponse
 
-from src.rpc.models import ErrorResponse, JSONRPCResponse
+from rpc.models import ErrorResponse, JSONRPCResponse
 
 
-def method_not_found(method, jrpc_id) -> JSONRPCResponse:
+def method_not_found(method: str, jrpc_id: object) -> JSONRPCResponse:
     return JSONRPCResponse(id=jrpc_id, error=ErrorResponse(message=f"Method '{method}' not found", code=-32601, name="Method not found", error=None))
 
 
-def no_params_passed(method, jrpc_id):
+def no_params_passed(method: str, jrpc_id: object) -> JSONRPCResponse:
     return JSONRPCResponse(
         id=jrpc_id,
         error=ErrorResponse(
@@ -19,7 +19,7 @@ def no_params_passed(method, jrpc_id):
     )
 
 
-def not_enough_params(method, jrpc_id):
+def not_enough_params(method: str, jrpc_id: object) -> JSONRPCResponse:
     return JSONRPCResponse(
         id=jrpc_id,
         error=ErrorResponse(
@@ -31,7 +31,7 @@ def not_enough_params(method, jrpc_id):
     )
 
 
-def invalid_params(method, jrpc_id):
+def invalid_params(method: str, jrpc_id: object) -> JSONRPCResponse:
     return JSONRPCResponse(
         id=jrpc_id,
         error=ErrorResponse(
@@ -43,7 +43,7 @@ def invalid_params(method, jrpc_id):
     )
 
 
-def no_authenticated_headers_passed(jrpc_id):
+def no_authenticated_headers_passed(jrpc_id: object) -> JSONRPCResponse:
     return JSONRPCResponse(
         id=jrpc_id,
         error=ErrorResponse(
@@ -55,7 +55,7 @@ def no_authenticated_headers_passed(jrpc_id):
     )
 
 
-def token_validation_failed(jrpc_id):
+def token_validation_failed(jrpc_id: object) -> JSONRPCResponse:
     return JSONRPCResponse(
         id=jrpc_id,
         error=ErrorResponse(
@@ -67,5 +67,5 @@ def token_validation_failed(jrpc_id):
     )
 
 
-def json_rpc_response_to_exception(content: JSONRPCResponse, status_code=500):
-    return JSONResponse(content=content.dict(), status_code=status_code)
+def json_rpc_response_to_exception(content: JSONRPCResponse, status_code: int = 500) -> JSONResponse:
+    return JSONResponse(content=content.model_dump(), status_code=status_code)

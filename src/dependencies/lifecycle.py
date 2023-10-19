@@ -7,24 +7,16 @@ from fastapi import HTTPException
 from fastapi import Request
 from kubernetes.client import ApiException
 
-from src.clients.baseclient import ServerError
-from src.configs.settings import Settings  # noqa: F401
-from src.dependencies.k8_wrapper import (
+from clients.baseclient import ServerError
+from configs.settings import Settings  # noqa: F401
+from dependencies.k8_wrapper import (
     create_and_launch_deployment,
     create_clusterip_service,
     update_ingress_to_point_to_service,
     scale_replicas,
 )
-from src.dependencies.status import get_service_status_with_retries, lookup_module_info
-from src.models.models import DynamicServiceStatus
-
-
-class ServiceAlreadyExistsException(HTTPException):
-    """
-    Exception to be raised when a service already exists.
-    """
-
-    pass
+from dependencies.status import get_service_status_with_retries, lookup_module_info
+from models import DynamicServiceStatus
 
 
 def get_env(request, module_name, module_version) -> Dict[str, str]:
@@ -53,7 +45,7 @@ def get_env(request, module_name, module_version) -> Dict[str, str]:
     return environ_map
 
 
-def get_volume_mounts(request, module_name, module_version):
+def get_volume_mounts(request, module_name, module_version) -> list[str]:
     """
     Get the volume mounts from the KBase Catalog for a module and set it up for the container to use.
     :param request:  The request object
@@ -62,12 +54,12 @@ def get_volume_mounts(request, module_name, module_version):
     :return:
     """
     volume_mounts = request.app.state.catalog_client.list_service_volume_mounts(module_name, module_version)
+    mounts = []
     if len(volume_mounts) > 0:
-        mounts = []
         for vol in volume_mounts:
             mount_type = "ro" if vol["read_only"] > 0 else "rw"
             mounts.append(f"{vol['host_dir']}:{vol['container_dir']}:{mount_type}")
-        return mounts
+    return mounts
 
 
 def _setup_metadata(module_name, requested_module_version, git_commit_hash, version, git_url) -> Tuple[Dict, Dict]:
@@ -130,7 +122,6 @@ def _create_and_launch_deployment_helper(
         return False
     except ApiException as e:
         if e.status == 409:  # AlreadyExistsError
-            logging.warning(e.body)
             return True
         else:
             detail = traceback.format_exc()

@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Request, Header, Cookie
 
-from src.clients.CachedAuthClient import CachedAuthClient  # noqa: F401
-from src.dependencies.middleware import is_authorized, ALPHANUMERIC_PATTERN
+from dependencies.middleware import is_authorized, ALPHANUMERIC_PATTERN
 
 router = APIRouter(
     tags=["authenticated"],
@@ -25,6 +24,6 @@ def whoami(
     ),
     kbase_session: str = Cookie(None, regex=ALPHANUMERIC_PATTERN),
 ):
-    cac = request.app.state.auth_client  # type: CachedAuthClient
+    cac = request.app.state.auth_client
 
-    return cac.validate_and_get_username_roles(token=authorization if authorization else kbase_session)
+    return cac.validate_and_get_username_auth_roles(token=authorization if authorization else kbase_session)

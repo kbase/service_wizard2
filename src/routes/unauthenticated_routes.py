@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Request
 
-from src.dependencies.status import get_version, get_status
-from src.configs.settings import Settings  # noqa: F401
+from dependencies.status import get_version, get_status
 
 router = APIRouter(
     tags=["unauthenticated"],

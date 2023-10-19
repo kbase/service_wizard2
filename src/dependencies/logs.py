@@ -2,10 +2,10 @@ from typing import List, Any
 
 from fastapi.requests import Request
 
-from src.clients.baseclient import ServerError
-from src.dependencies.k8_wrapper import get_logs_for_first_pod_in_deployment
-from src.dependencies.status import lookup_module_info
-from src.rpc.models import JSONRPCResponse
+from clients.baseclient import ServerError
+from dependencies.k8_wrapper import get_logs_for_first_pod_in_deployment
+from dependencies.status import lookup_module_info
+from rpc.models import JSONRPCResponse
 
 
 def get_service_log(request: Request, module_name: str, module_version: str) -> JSONRPCResponse | list[dict[str, Any]] | None:
@@ -18,7 +18,7 @@ def get_service_log(request: Request, module_name: str, module_version: str) -> 
     :param module_version:  The module version, normalization not required
     :return: Logs for a single pod in the deployment
     """
-    user_auth_roles = request.state.user_auth_roles  # type: UserAuthRoles
+    user_auth_roles = request.state.user_auth_roles
     module_info = lookup_module_info(request, module_name, module_version)
     tags = module_info.release_tags
 
@@ -29,7 +29,7 @@ def get_service_log(request: Request, module_name: str, module_version: str) -> 
         return [{"instance_id": pod_name, "log": logs}]
 
 
-def get_service_log_web_socket(request: Request, module_name: str, module_version: str) -> List[dict]:
+def get_service_log_web_socket(request: Request, module_name: str, module_version: str) -> List[dict]:  # pragma: no cover
     """
     Get logs for a service. This isn't used anywhere but can require a dependency on rancher if implemented.
 
