@@ -34,7 +34,7 @@ jobs:
 
       - name: Install dependencies
         shell: bash
-        run: bash scripts/install_dependencies.sh
+        run: bash scripts/update_dependencies.sh
 
       - name: Run pre-commit Hooks
         shell: bash
