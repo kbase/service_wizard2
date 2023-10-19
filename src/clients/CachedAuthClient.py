@@ -4,7 +4,7 @@ import requests
 from cacheout import LRUCache
 from fastapi import HTTPException
 
-from src.configs.settings import Settings, get_settings
+from configs.settings import Settings, get_settings
 
 
 class UserAuthRoles:
@@ -23,7 +23,7 @@ class UserAuthRoles:
 
 
 class CachedAuthClient:
-    def __init__(self, settings: Settings = None, valid_tokens_cache: LRUCache = None):
+    def __init__(self, settings: Settings | None = None, valid_tokens_cache: LRUCache | None = None):
         """
         Initialize the CachedAuthClient
         :param settings: The settings to use, or use the default settings if not provided

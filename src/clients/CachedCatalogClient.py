@@ -2,22 +2,22 @@ import hashlib
 
 from cacheout import LRUCache
 
-from src.clients.CatalogClient import Catalog
-from src.configs.settings import Settings, get_settings
+from clients.CatalogClient import Catalog
+from configs.settings import Settings, get_settings
 
 
-def get_module_name_hash(module_name: str = None):
+def get_module_name_hash(module_name: str) -> str:
     """
     Calculate the MD5 hash of a module name and return the first 20 characters of the hexadecimal digest.
     This is not a valid DNS name as it doesn't guarantee to start or end with an alphanumeric character.
-    This doesn't actually get used anywhere, its just here because it was like this in SW1
+    This doesn't actually get used anywhere, it's just here because it was like this in SW1
     :param module_name: The name of the module.
     :return: The MD5 hash of the module name.
     """
     return hashlib.md5(module_name.encode()).hexdigest()[:20]
 
 
-def _clean_version(version) -> str:
+def _clean_version(version: str | int | None) -> str:
     if version is None:
         version = "release"
 
@@ -36,7 +36,7 @@ class CachedCatalogClient:
 
     cc: Catalog
 
-    def __init__(self, settings: Settings, catalog: Catalog = None):
+    def __init__(self, settings: Settings, catalog: Catalog | None = None):
         settings = get_settings() if not settings else settings
         self.cc = Catalog(url=settings.catalog_url, token=settings.catalog_admin_token) if not catalog else catalog
 
@@ -80,7 +80,7 @@ class CachedCatalogClient:
             self.module_volume_mount_cache.set(key=key, value=mounts)
         return mounts
 
-    def get_secure_params(self, module_name: str, version: str = "release"):
+    def get_secure_params(self, module_name: str, version: str = "release") -> list:
         """
         Retrieve the secure config parameters for a module from the catalog.
         :param module_name: The name of the module.
@@ -94,7 +94,7 @@ class CachedCatalogClient:
             self.secure_config_cache.set(key=key, value=secure_config_params)
         return secure_config_params
 
-    def get_hash_to_name_mappings(self):
+    def get_hash_to_name_mappings(self) -> dict[str, dict]:
         """
         Retrieve the hashes of dynamic service modules from the catalog.
         Connects to the catalog using the provided request, retrieves the list of basic module

@@ -3,7 +3,7 @@ import logging
 from fastapi import HTTPException
 from fastapi import Header, Cookie, Request
 
-from src.clients.CachedAuthClient import CachedAuthClient  # noqa: F401
+from clients.CachedAuthClient import CachedAuthClient  # noqa: F401
 
 # Constants
 ALPHANUMERIC_PATTERN = r"^[a-zA-Z0-9]+$"
@@ -18,8 +18,8 @@ def is_authorized(
         description="KBase auth token",
     ),
     kbase_session: str = Cookie(None, regex=ALPHANUMERIC_PATTERN),
-    method: str = None,
-    payload: dict = None,
+    method: str | None = None,
+    payload: dict | None = None,
 ) -> bool:
     """
     Check if the user is authorized to access the endpoint in general.
@@ -34,7 +34,7 @@ def is_authorized(
     if not authorization and not kbase_session:
         logging.warning(f"No authorization header or kbase_session cookie provided for {method} payload: {payload}")
         raise HTTPException(
-            status_code=400,
+            status_code=401,
             detail=f"Please provide the 'Authorization' header or 'kbase_session' cookie for {method} payload: {payload} ",
         )
     try:

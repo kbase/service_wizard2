@@ -4,15 +4,15 @@ from typing import Callable, Any
 
 from fastapi import HTTPException, Request
 
-from src.clients.CachedAuthClient import UserAuthRoles, CachedAuthClient  # noqa: F401
-from src.clients.baseclient import ServerError
-from src.rpc.error_responses import (
+from clients.CachedAuthClient import UserAuthRoles, CachedAuthClient  # noqa: F401
+from clients.baseclient import ServerError
+from rpc.error_responses import (
     no_params_passed,
 )
-from src.rpc.models import ErrorResponse, JSONRPCResponse
+from rpc.models import ErrorResponse, JSONRPCResponse
 
 
-def validate_rpc_request(body):
+def validate_rpc_request(body) -> tuple[str, list[dict], str]:
     """
     Validate the JSON-RPC request body to ensure methods and params are present and of the correct type.
     :param body: The JSON-RPC request body
@@ -36,7 +36,6 @@ def validate_rpc_request(body):
 
     if not isinstance(method, str) and not isinstance(params, list):
         raise ServerError(message=f"`method` must be a valid SW1 method string. Params must be a dictionary. {json_data}", code=-32600, name="Invalid Request")
-    print(type(method), type(params), type(jrpc_id))
     return method, params, jrpc_id
 
 
@@ -70,9 +69,7 @@ def get_user_auth_roles(request: Request, jrpc_id: str, method: str) -> tuple[An
                 error=f"{e.detail}",
             ),
         )
-    except:  # noqa: E722
-        # Something unexpected happened, but we STILL don't want to authorize the request!
-        raise
+    # Something unexpected happened, but we STILL don't want to authorize the request!
 
 
 def handle_rpc_request(
@@ -83,28 +80,27 @@ def handle_rpc_request(
 ) -> JSONRPCResponse:
     method_name = action.__name__
     try:
-        params = params[0]
-        if not isinstance(params, dict):
+        first_param = params[0]
+        if not isinstance(first_param, dict):
             return JSONRPCResponse(
                 id=jrpc_id,
                 error=ErrorResponse(
                     message=f"Invalid params for ServiceWizard.{method_name}",
                     code=-32602,
                     name="Invalid params",
-                    error=f"Params must be a dictionary. Got {type(params)}",
+                    error=f"Params must be a dictionary. Got {type(first_param)}",
                 ),
             )
     except IndexError:
         return no_params_passed(method=method_name, jrpc_id=jrpc_id)
 
     # This is for backwards compatibility with SW1 logging functions, as they pass in the "service" dictionary instead of the module_name and version
-    service = params.get("service", {})
-    module_name = service.get("module_name", params.get("module_name"))
-    module_version = service.get("version", params.get("version"))
+    service = first_param.get("service", {})
+    module_name = service.get("module_name", first_param.get("module_name"))
+    module_version = service.get("version", first_param.get("version"))
 
     try:
         result = action(request, module_name, module_version)
-        print("ABOUT TO RETURN RESULT", result)
         return JSONRPCResponse(id=jrpc_id, result=[result])
     except ServerError as e:
         traceback_str = traceback.format_exc()

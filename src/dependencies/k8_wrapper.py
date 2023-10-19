@@ -1,4 +1,3 @@
-import logging
 import re
 import time
 from typing import Optional, List
@@ -19,7 +18,7 @@ from kubernetes.client import (
     V1Toleration,
 )
 
-from src.clients.KubernetesClients import (
+from clients.KubernetesClients import (
     get_k8s_core_client,
     get_k8s_app_client,
     get_k8s_networking_client,
@@ -27,13 +26,13 @@ from src.clients.KubernetesClients import (
     check_service_status_cache,
     populate_service_status_cache,
 )
-from src.configs.settings import get_settings
+from configs.settings import get_settings
 
 
 def get_pods_in_namespace(
     k8s_client: client.CoreV1Api,
-    field_selector=None,
-    label_selector="dynamic-service=true",
+    field_selector: str | None = None,
+    label_selector: str = "dynamic-service=true",
 ) -> client.V1PodList:
     """
     Retrieve a list of pods in a specific namespace based on the provided field and label selectors.
@@ -47,22 +46,32 @@ def get_pods_in_namespace(
     return pod_list
 
 
-def v1_volume_mount_factory(mounts):
+def v1_volume_mount_factory(mounts: List[str]) -> tuple[list[client.V1Volume], list[client.V1VolumeMount]]:
     volumes = []
     volume_mounts = []
 
     if mounts:
         for i, mount in enumerate(mounts):
+            if not mount:
+                raise ValueError(f"Empty mount provided at index {i}")
+
             mount_parts = mount.split(":")
+
+            # Check that mount string is split into 3 parts
             if len(mount_parts) != 3:
-                logging.error(f"Invalid mount format: {mount}")
+                raise ValueError(f"Invalid mount format: {mount}. Expected format: host_path:mount_path:ro/rw")
+
+            # Ensure third part is either "ro" or "rw"
+            if mount_parts[2] not in ["ro", "rw"]:
+                raise ValueError(f"Invalid permission in mount: {mount}. Expected 'ro' or 'rw' but got {mount_parts[2]}")
+
             volumes.append(client.V1Volume(name=f"volume-{i}", host_path=client.V1HostPathVolumeSource(path=mount_parts[0])))  # This is your host path
             volume_mounts.append(client.V1VolumeMount(name=f"volume-{i}", mount_path=mount_parts[1], read_only=bool(mount_parts[2] == "ro")))  # This is your container path
 
     return volumes, volume_mounts
 
 
-def sanitize_deployment_name(module_name, module_git_commit_hash):
+def sanitize_deployment_name(module_name: str, module_git_commit_hash: str) -> tuple[str, str]:
     """
     Create a deployment name based on the module name and git commit hash.
     Adhere to Kubernetes API naming rules and create valid DNS labels.
@@ -80,7 +89,7 @@ def sanitize_deployment_name(module_name, module_git_commit_hash):
     return deployment_name, service_name
 
 
-def create_clusterip_service(request, module_name, module_git_commit_hash, labels) -> client.V1Service:
+def create_clusterip_service(request: Request, module_name: str, module_git_commit_hash: str, labels: dict[str, str]) -> client.V1Service:
     core_v1_api = get_k8s_core_client(request)
     deployment_name, service_name = sanitize_deployment_name(module_name, module_git_commit_hash)
 
@@ -101,7 +110,7 @@ def create_clusterip_service(request, module_name, module_git_commit_hash, label
     return core_v1_api.create_namespaced_service(namespace=get_settings().namespace, body=service)
 
 
-def _ensure_ingress_exists(request):
+def _ensure_ingress_exists(request: Request) -> V1Ingress:
     # This ensures that the main service wizard ingress exists, and if it doesn't, creates it.
     # This should only ever be called once, or if in case someone deletes the ingress for it
     settings = request.app.state.settings
@@ -121,43 +130,36 @@ def _ensure_ingress_exists(request):
     try:
         return networking_v1_api.read_namespaced_ingress(name="dynamic-services", namespace=settings.namespace)
     except ApiException as e:
-        if e.status == 404:
+        if e.status == 404:  # Ingress Not Found
             return networking_v1_api.create_namespaced_ingress(namespace=settings.namespace, body=ingress)
-        else:
-            raise
+        raise
 
 
-def _path_exists_in_ingress(ingress, path):
+def path_exists_in_ingress(ingress: V1Ingress, path: str) -> bool:
     """Check if a path already exists in an ingress with one rule only"""
-    if ingress.spec.rules[0].http:
-        for existing_path in ingress.spec.rules[0].http.paths:
-            if existing_path.path == path:
-                return True
+    if ingress.spec.rules and ingress.spec.rules[0].http:
+        return any(existing_path.path == path for existing_path in ingress.spec.rules[0].http.paths)
     return False
 
 
-class InvalidIngressError(Exception):
-    pass
-
-
-def _update_ingress_with_retries(request, new_path, namespace, retries=3):
-    for retry in range(retries):
+def _update_ingress_with_retries(request: Request, new_path: V1HTTPIngressPath, namespace: str, retries: int = 3):
+    for attempt in range(retries):
         try:
             ingress = _ensure_ingress_exists(request)
             # Initialize http attribute with an empty paths list if it is None
             if ingress.spec.rules[0].http is None:
                 ingress.spec.rules[0].http = V1HTTPIngressRuleValue(paths=[])
             # Only append the path if it doesn't exist already
-            if not _path_exists_in_ingress(ingress, new_path.path):
+            if not path_exists_in_ingress(ingress, new_path.path):
                 ingress.spec.rules[0].http.paths.append(new_path)
             get_k8s_networking_client(request).replace_namespaced_ingress(name=ingress.metadata.name, namespace=namespace, body=ingress)
             break  # if the operation was successful, break the retry loop
         except ApiException as e:
-            if e.status not in {409, 422} or retry == retries - 1:
-                # re-raise the exception on the last retry, or if the error is not a conflict
-                raise
-            else:
+            if e.status in {409, 422} and attempt < retries - 1:
+                # Sleep and retry if the error is a conflict, and we haven't reached the max retries
                 time.sleep(1)
+                continue
+            raise
 
 
 def update_ingress_to_point_to_service(request: Request, module_name: str, git_commit_hash: str):
@@ -170,7 +172,9 @@ def update_ingress_to_point_to_service(request: Request, module_name: str, git_c
     _update_ingress_with_retries(request=request, new_path=new_path, namespace=namespace)
 
 
-def create_and_launch_deployment(request, module_name, module_git_commit_hash, image, labels, annotations, env, mounts) -> client.V1LabelSelector:
+def create_and_launch_deployment(
+    request: Request, module_name: str, module_git_commit_hash: str, image: str, labels: list, annotations: dict, env: dict, mounts: list
+) -> client.V1LabelSelector:
     deployment_name, service_name = sanitize_deployment_name(module_name, module_git_commit_hash)
     namespace = request.app.state.settings.namespace
 
@@ -200,7 +204,7 @@ class DuplicateLabelsException(Exception):
     pass
 
 
-def _get_deployment_status(request, label_selector_text) -> Optional[client.V1Deployment]:
+def _get_deployment_status(request: Request, label_selector_text: str) -> Optional[client.V1Deployment]:
     deployment_status = check_service_status_cache(request, label_selector_text)
     if deployment_status is not None:
         return deployment_status
@@ -220,17 +224,17 @@ def _get_deployment_status(request, label_selector_text) -> Optional[client.V1De
     return deployment_status
 
 
-def query_k8s_deployment_status(request, module_name, module_git_commit_hash) -> client.V1Deployment:
+def query_k8s_deployment_status(request: Request, module_name: str, module_git_commit_hash: str) -> client.V1Deployment:
     label_selector_text = f"us.kbase.module.module_name={module_name.lower()}," + f"us.kbase.module.git_commit_hash={module_git_commit_hash}"
     return _get_deployment_status(request, label_selector_text)
 
 
-def get_k8s_deployment_status_from_label(request, label_selector: client.V1LabelSelector) -> client.V1Deployment:
+def get_k8s_deployment_status_from_label(request: Request, label_selector: client.V1LabelSelector) -> client.V1Deployment:
     label_selector_text = ",".join([f"{key}={value}" for key, value in label_selector.match_labels.items()])
     return _get_deployment_status(request, label_selector_text)
 
 
-def get_k8s_deployments(request, label_selector="us.kbase.dynamicservice=true") -> List[client.V1Deployment]:
+def get_k8s_deployments(request: Request, label_selector: str = "us.kbase.dynamicservice=true") -> List[client.V1Deployment]:
     """
     Get all deployments with the given label selector. This is cached for 5 minutes.
     :param request: Request object
@@ -251,21 +255,21 @@ def get_k8s_deployments(request, label_selector="us.kbase.dynamicservice=true") 
     return deployments
 
 
-def delete_deployment(request, module_name, module_git_commit_hash) -> str:
+def delete_deployment(request: Request, module_name: str, module_git_commit_hash: str) -> str:
     deployment_name, _ = sanitize_deployment_name(module_name, module_git_commit_hash)
     namespace = request.app.state.settings.namespace
     get_k8s_app_client(request).delete_namespaced_deployment(name=deployment_name, namespace=namespace)
     return deployment_name
 
 
-def scale_replicas(request, module_name, module_git_commit_hash, replicas: int) -> client.V1Deployment:
+def scale_replicas(request: Request, module_name: str, module_git_commit_hash: str, replicas: int) -> client.V1Deployment:
     deployment = query_k8s_deployment_status(request, module_name, module_git_commit_hash)
     namespace = request.app.state.settings.namespace
     deployment.spec.replicas = replicas
     return get_k8s_app_client(request).replace_namespaced_deployment(name=deployment.metadata.name, namespace=namespace, body=deployment)
 
 
-def get_logs_for_first_pod_in_deployment(request, module_name, module_git_commit_hash):
+def get_logs_for_first_pod_in_deployment(request: Request, module_name: str, module_git_commit_hash: str) -> tuple[str, str] | tuple[str, list[str]]:
     deployment_name, _ = sanitize_deployment_name(module_name, module_git_commit_hash)
     namespace = request.app.state.settings.namespace
     label_selector_text = f"us.kbase.module.module_name={module_name.lower()}," + f"us.kbase.module.git_commit_hash={module_git_commit_hash}"

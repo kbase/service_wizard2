@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 from pydantic import BaseModel
 
@@ -7,16 +7,14 @@ class ErrorResponse(BaseModel):
     message: str
     code: int
     name: str
-    error: str = None
-
-
+    error: str | None = None
 
 
 class JSONRPCResponse(BaseModel):
     version: str = "1.0"
-    id: Optional[Union[int, str]] = 0
-    error: Optional[ErrorResponse] = None
-    result: Any = None
+    id: Union[int, str] | None = 0
+    error: ErrorResponse | None = None
+    result: Any | None = None
 
     def model_dump(self, *args, **kwargs) -> dict[str, Any]:
         # Default behavior for the serialization

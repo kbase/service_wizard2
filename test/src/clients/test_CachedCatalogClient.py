@@ -3,9 +3,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from src.clients.CachedCatalogClient import CachedCatalogClient, get_module_name_hash, _get_key, _clean_version
-from src.clients.CatalogClient import Catalog
-from src.configs.settings import get_settings
+from clients.CachedCatalogClient import CachedCatalogClient, get_module_name_hash, _get_key, _clean_version
+from clients.CatalogClient import Catalog
+from configs.settings import get_settings
 
 
 @pytest.fixture

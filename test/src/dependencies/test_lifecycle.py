@@ -6,10 +6,9 @@ import pytest
 from fastapi import HTTPException
 from kubernetes.client import ApiException
 
-from src.clients.baseclient import ServerError
-from src.configs.settings import get_settings
-from src.dependencies import lifecycle
-from src.models.models import DynamicServiceStatus, ServiceStatus
+from clients.baseclient import ServerError
+from dependencies import lifecycle
+from models import ServiceStatus, DynamicServiceStatus
 from test.src.dependencies import test_helpers as tlh
 
 
@@ -49,7 +48,7 @@ def test_simple_setup_metadata():
 
 def test_simple_get_env(mock_request):
     envs = lifecycle.get_env(request=mock_request, module_name=None, module_version=None)
-    s = get_settings()
+    s = mock_request.app.state.settings
 
     expected_environ_map = {
         "KBASE_ENDPOINT": s.kbase_services_endpoint,
@@ -61,12 +60,12 @@ def test_simple_get_env(mock_request):
         assert expected_environ_map[item] == envs[item]
 
 
-@patch("src.dependencies.lifecycle.scale_replicas")
-@patch("src.dependencies.lifecycle.get_service_status_with_retries")
-@patch("src.dependencies.lifecycle._create_cluster_ip_service_helper")
-@patch("src.dependencies.lifecycle._update_ingress_for_service_helper")
-@patch("src.dependencies.lifecycle._setup_metadata")
-@patch("src.dependencies.lifecycle._create_and_launch_deployment_helper")
+@patch("dependencies.lifecycle.scale_replicas")
+@patch("dependencies.lifecycle.get_service_status_with_retries")
+@patch("dependencies.lifecycle._create_cluster_ip_service_helper")
+@patch("dependencies.lifecycle._update_ingress_for_service_helper")
+@patch("dependencies.lifecycle._setup_metadata")
+@patch("dependencies.lifecycle._create_and_launch_deployment_helper")
 def test_start_deployment(
     _create_and_launch_deployment_helper_mock,
     _setup_metadata_mock,
@@ -79,11 +78,11 @@ def test_start_deployment(
     # Test Deployment Does Not Already exist, no need to scale replicas
     _create_and_launch_deployment_helper_mock.return_value = False
     _setup_metadata_mock.return_value = {}, {}
-    get_service_status_with_retries_mock.return_value = tlh.get_stopped_deployment("tester")
+    get_service_status_with_retries_mock.return_value = tlh.get_stopped_deployment_status("tester")
 
     rv = lifecycle.start_deployment(request=mock_request, module_name="test_module", module_version="dev")
     scale_replicas_mock.assert_not_called()
-    assert rv == tlh.get_stopped_deployment("tester")
+    assert rv == tlh.get_stopped_deployment_status("tester")
 
     # Test Deployment Already Exists, need to scale instead of recreate
     _create_and_launch_deployment_helper_mock.return_value = True
@@ -91,7 +90,7 @@ def test_start_deployment(
     scale_replicas_mock.assert_called_once()  #
 
 
-@patch("src.dependencies.lifecycle.create_and_launch_deployment")
+@patch("dependencies.lifecycle.create_and_launch_deployment")
 def test__create_and_launch_deployment_helper(mock_create_and_launch, mock_request):
     # Test truthiness based on api exception
     module_name = "test_module"
@@ -127,7 +126,7 @@ def test__create_and_launch_deployment_helper(mock_create_and_launch, mock_reque
     assert e.value.status_code == 500
 
 
-@patch("src.dependencies.lifecycle.create_clusterip_service")
+@patch("dependencies.lifecycle.create_clusterip_service")
 @patch.object(logging, "warning")
 def test__create_cluster_ip_service_helper(mock_logging_warning, mock_create_clusterip_service, mock_request):
     # Test truthiness based on api exception
@@ -154,7 +153,7 @@ def test__create_cluster_ip_service_helper(mock_logging_warning, mock_create_clu
     assert mock_create_clusterip_service.call_count == 3
 
 
-@patch("src.dependencies.lifecycle.update_ingress_to_point_to_service")
+@patch("dependencies.lifecycle.update_ingress_to_point_to_service")
 @patch.object(logging, "warning")
 def test_create_and_launch_deployment_helper(mock_logging_warning, mock_update_ingress_to_point_to_service, mock_request):
     # Test truthiness based on api exception
@@ -180,7 +179,7 @@ def test_create_and_launch_deployment_helper(mock_logging_warning, mock_update_i
     assert mock_logging_warning.call_count == 1
 
 
-@patch("src.dependencies.lifecycle.scale_replicas")
+@patch("dependencies.lifecycle.scale_replicas")
 def test_stop_deployment(mock_scale_replicas, mock_request):
     mock_request.state.user_auth_roles.is_admin_or_owner.return_value = False
     with pytest.raises(ServerError) as e:

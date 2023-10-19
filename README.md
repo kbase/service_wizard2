@@ -105,8 +105,7 @@ pipenv shell
 To start the server, run
 
 ```
-uvicorn --host 0.0.0.0 --factory src.factory:create_app --reload --port 1234
-```
+PYTHONPATH=.:src uvicorn --host 0.0.0.0 --factory factory:create_app --reload --port 1234```
 
 To install pre-commit hook and test it
 
@@ -129,15 +128,14 @@ the [env](test/.env) file.
 
 You can run the service in pycharm as well, but you will need to set the following parameters in the run configuration:
 
-parameters = `<uvicorn_path_goes_here> --reload --port 5002 --host 0.0.0.0 --factory src.factory:create_app `
-
+parameters = `PYTHONPATH=.:src uvicorn --host 0.0.0.0 --factory factory:create_app --reload --port 1234`
 ## Usage
 
 OpenAPI documentation is provided at the `/docs` endpoint of the server (in KBase, this is
 at `<host>/service/service_wizard2/docs`, for example
 [https://ci.kbase.us/services/service_wizard2/docs](https://ci.kbase.us/services/service_wizard2/docs)).
 
-However, the RPC endpoints are not documented. See the [original service wizard spec](src/ServiceWizard_Artifacts/ServiceWizard.spec) for details on how to use the endpoint.
+However, the RPC endpoints are not documented. See the [original service wizard spec](documentation/ServiceWizard_Artifacts/ServiceWizard.spec) for details on how to use the endpoint.
 
 
 ### Error codes

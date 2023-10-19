@@ -4,8 +4,8 @@ import pytest
 from cacheout import LRUCache
 from fastapi import HTTPException
 
-from src.clients.CachedAuthClient import CachedAuthClient, UserAuthRoles
-from src.configs.settings import get_settings
+from clients.CachedAuthClient import CachedAuthClient, UserAuthRoles
+from configs.settings import get_settings
 
 
 @pytest.fixture
