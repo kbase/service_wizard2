@@ -7,10 +7,10 @@ from kubernetes import client
 from kubernetes.client import CoreV1Api, AppsV1Api, NetworkingV1Api
 from kubernetes.client import V1Ingress, V1IngressSpec, V1IngressRule
 
-from clients.CachedCatalogClient import CachedCatalogClient
-from clients.KubernetesClients import K8sClients
-from configs.settings import get_settings
-from models import DynamicServiceStatus
+from src.clients.CachedCatalogClient import CachedCatalogClient
+from src.clients.KubernetesClients import K8sClients
+from src.configs.settings import get_settings
+from src.models import DynamicServiceStatus
 
 
 @pytest.fixture(autouse=True)
