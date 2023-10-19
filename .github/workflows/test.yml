@@ -45,8 +45,7 @@ jobs:
 
       - name: Run tests
         shell: bash
-        run: PYTHONPATH=.:src:test pytest --cov=src --cov-report term-missing --cov-fail-under=99 --cov-report=xml:coverage.xml  -W ignore::DeprecationWarning test
-
+        run: bash scripts/run_tests.sh
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
