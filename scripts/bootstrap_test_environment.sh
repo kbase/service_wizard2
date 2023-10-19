@@ -1,4 +1,5 @@
 #!/bin/bash
+pip install pipenv
 
 # Check if a Pipenv environment already exists
 if pipenv --venv &>/dev/null; then
