@@ -29,7 +29,7 @@ def test_get_settings_from_env(cleared_settings):
     assert cleared_settings.git_url == "https://github.com/kbase/service_wizard2"
     assert cleared_settings.root_path == "/"
     assert cleared_settings.use_incluster_config is False
-    assert cleared_settings.vcs_ref == os.environ.get("GIT_COMMIT_HASH")
+    assert cleared_settings.vcs_ref == os.environ.get("GIT_COMMIT_HASH", "unknown")
 
 
 def test_missing_env(cleared_settings):

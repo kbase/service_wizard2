@@ -91,5 +91,5 @@ def get_settings() -> Settings:
         namespace=os.environ.get("NAMESPACE"),
         root_path=os.environ.get("ROOT_PATH"),
         use_incluster_config=os.environ.get("USE_INCLUSTER_CONFIG", "").lower() == "true",
-        vcs_ref=os.environ.get("GIT_COMMIT_HASH"),
+        vcs_ref=os.environ.get("GIT_COMMIT_HASH", "unknown"),
     )

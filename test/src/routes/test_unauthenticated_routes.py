@@ -13,12 +13,11 @@ def test_status(app):
     client = TestClient(app)
     response = client.get("/status")
     assert response.status_code == 200
-    assert response.json() == {"git_commit_hash": "1.2.3", "git_url": "https://github.com/kbase/service_wizard2", "message": "", "state": "OK", "version": "1.2.3"}
-    # Version is 'None' in pycharm if you don't set env var
+    assert response.json() == {"git_commit_hash": "unknown", "git_url": "https://github.com/kbase/service_wizard2", "message": "", "state": "OK", "version": "unknown"}
 
 
 def test_version(app):
     client = TestClient(app)
     response = client.get("/version")
     assert response.status_code == 200
-    assert response.json() == ["1.2.3"]  # 'None' in pycharm
+    assert response.json() == ["unknown"]  # 'None' in pycharm
