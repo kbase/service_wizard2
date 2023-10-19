@@ -1,0 +1,4 @@
+[run]
+omit =
+    src/clients/CatalogClient.py
+    src/clients/baseclient.py
