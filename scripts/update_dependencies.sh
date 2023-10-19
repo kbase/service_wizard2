@@ -11,7 +11,6 @@ if [ -z "$GITHUB_ACTION" ]; then
 fi
 
 
-
 if [[ -n $VIRTUAL_ENV ]]; then
     echo "Pipenv shell is  activated and ready for updates"
 
