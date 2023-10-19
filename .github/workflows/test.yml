@@ -33,10 +33,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
 
-      - name: Bootstrap Pip environment
-        shell: bash
-        run: scripts/bootstrap_test_environment.sh
-
       - name: Install dependencies
         shell: bash
         run: bash scripts/update_dependencies.sh
