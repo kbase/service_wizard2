@@ -174,6 +174,8 @@ def start_deployment(request: Request, module_name, module_version, replicas=1) 
     """
 
     module_info = request.app.state.catalog_client.get_combined_module_info(module_name, module_version)
+    # Overwrite the module version with the one from the catalog
+    module_version = module_info["version"]
     labels, annotations = _setup_metadata(
         module_name=module_name,
         requested_module_version=module_version,

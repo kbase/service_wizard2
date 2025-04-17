@@ -31,7 +31,7 @@ def test_whoami_with_bad_auth(app):
                 "msg": "String should match pattern '^[" "a-zA-Z0-9]+$'",
                 "input": "invalid_session",
                 "ctx": {"pattern": "^[a-zA-Z0-9]+$"},
-                "url": "https://errors.pydantic.dev/2.4/v/string_pattern_mismatch",
+                "url": "https://errors.pydantic.dev/2.11/v/string_pattern_mismatch",
             },
             {
                 "type": "string_pattern_mismatch",
@@ -39,7 +39,7 @@ def test_whoami_with_bad_auth(app):
                 "msg": "String should match pattern '^[a-zA-Z0-9]+$'",
                 "input": "invalid_session",
                 "ctx": {"pattern": "^[a-zA-Z0-9]+$"},
-                "url": "https://errors.pydantic.dev/2.4/v/string_pattern_mismatch",
+                "url": "https://errors.pydantic.dev/2.11/v/string_pattern_mismatch",
             },
         ]
     }
