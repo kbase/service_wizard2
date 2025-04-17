@@ -18,11 +18,10 @@ def get_module_name_hash(module_name: str) -> str:
 
 
 def _clean_version(version: str | int | None) -> str:
-    if version is None:
-        version = "release"
-
-    return str(version)
-
+    version_str = str(version)
+    if version_str.lower() == "none" or version_str.lower() == "null":
+        return "release"
+    return version_str
 
 def _get_key(module_name: str, version: str = "release") -> str:
     return str(module_name) + "-" + str(_clean_version(version))
