@@ -12,6 +12,18 @@ on:
       - synchronize
       - closed
 jobs:
+
+  permschecker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get GITHUB_TOKEN Permissions
+        run: |
+          echo "GITHUB_TOKEN Permissions:"
+          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" | jq '.jobs[].steps[].permissions'
+  
+
   build-develop-open:
     if: github.base_ref == 'develop' && github.event.pull_request.merged == false
     uses: bio-boris/.github/.github/workflows/reusable_build.yml@add-sbom
@@ -46,3 +58,4 @@ jobs:
     if: (github.base_ref == 'develop' || github.base_ref == 'main' || github.base_ref == 'master' ) && github.event.pull_request.merged == false
     uses: bio-boris/.github/.github/workflows/reusable_trivy-scans.yml@add-sbom
     secrets: inherit
+ 
