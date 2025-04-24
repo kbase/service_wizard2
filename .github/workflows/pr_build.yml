@@ -17,6 +17,8 @@ jobs:
     with:
       platforms: "linux/amd64"
     secrets: inherit
+    permissions: # Added permissions block
+      contents: read
   build-develop-merge:
     if: github.base_ref == 'develop' && github.event.pull_request.merged == true
     uses: bio-boris/.github/.github/workflows/reusable_build-push.yml@add-sbom
@@ -25,6 +27,8 @@ jobs:
       tags: pr-${{ github.event.number }},latest
       platforms: "linux/amd64"
     secrets: inherit
+    permissions: # Added permissions block
+      contents: write
   build-main-open:
     if: (github.base_ref == 'main' || github.base_ref == 'master') && github.event.pull_request.merged == false
     uses: bio-boris/.github/.github/workflows/reusable_build-push.yml@add-sbom
@@ -33,6 +37,8 @@ jobs:
       tags: pr-${{ github.event.number }}
       platforms: "linux/amd64"
     secrets: inherit
+    permissions: # Added permissions block
+      contents: write
   build-main-merge:
     if: (github.base_ref == 'main' || github.base_ref == 'master') && github.event.pull_request.merged == true
     uses: bio-boris/.github/.github/workflows/reusable_build-push.yml@add-sbom
@@ -41,6 +47,8 @@ jobs:
       tags: pr-${{ github.event.number }},latest-rc
       platforms: "linux/amd64"
     secrets: inherit
+    permissions: # Added permissions block
+      contents: write
   trivy-scans:
     if: (github.base_ref == 'develop' || github.base_ref == 'main' || github.base_ref == 'master' ) && github.event.pull_request.merged == false
     uses: bio-boris/.github/.github/workflows/reusable_trivy-scans.yml@add-sbom
