@@ -91,9 +91,6 @@ def get_service_status_with_retries(request, module_name, version, retries=10) -
             pass
         time.sleep(2)
 
-    status = get_dynamic_service_status_helper(request, module_name, version)
-    status.up = 0
-
     raise Exception("Failed to get service status after maximum retries")
 
 
