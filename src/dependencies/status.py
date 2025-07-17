@@ -51,7 +51,7 @@ def get_service_status_without_retries(request, module_name, version) -> Dynamic
     error is raised.
     """
     try:
-        return get_service_status_with_retries(request, module_name, version, retries=0)
+        return get_service_status_with_retries(request, module_name, version, retries=1)
     except Exception as e:
         if str(e) == "Failed to get service status after maximum retries":
             return get_dynamic_service_status_helper_no_retries(request, module_name, version)
