@@ -58,6 +58,8 @@ def get_service_status_without_retries(request, module_name, version) -> Dynamic
         else:
             # If it's a different error, re-raise the exception.
             raise
+
+
 def get_service_status_with_retries(request, module_name, version, retries=10) -> DynamicServiceStatus:
     """
     Retrieve the status of a service based on the module version and git commit hash.
@@ -95,7 +97,6 @@ def get_service_status_with_retries(request, module_name, version, retries=10) -
     raise Exception("Failed to get service status after maximum retries")
 
 
-
 def get_dynamic_service_status_helper_no_retries(request, module_name, version) -> DynamicServiceStatus:
     """
     This is for backwards compat for SW1 in R1
@@ -116,6 +117,7 @@ def get_dynamic_service_status_helper_no_retries(request, module_name, version) 
         available_replicas=0,
         unavailable_replicas=0,
     )
+
 
 def get_dynamic_service_status_helper(request, module_name, version) -> DynamicServiceStatus:
     """
