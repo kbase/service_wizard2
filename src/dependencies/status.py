@@ -47,10 +47,17 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
 def get_service_status_without_retries(request, module_name, version) -> DynamicServiceStatus:
     """
     Convenience method to get the service status without retries.
+    This will only fall back to the helper function if the specific "maximum retries"
+    error is raised.
     """
-    return get_service_status_with_retries(request, module_name, version, retries=0)
-
-
+    try:
+        return get_service_status_with_retries(request, module_name, version, retries=0)
+    except Exception as e:
+        if str(e) == "Failed to get service status after maximum retries":
+            return get_dynamic_service_status_helper_no_retries(request, module_name, version)
+        else:
+            # If it's a different error, re-raise the exception.
+            raise
 def get_service_status_with_retries(request, module_name, version, retries=10) -> DynamicServiceStatus:
     """
     Retrieve the status of a service based on the module version and git commit hash.
@@ -82,8 +89,33 @@ def get_service_status_with_retries(request, module_name, version, retries=10) -
             pass
         time.sleep(2)
 
+    status = get_dynamic_service_status_helper(request, module_name, version)
+    status.up = 0
+
     raise Exception("Failed to get service status after maximum retries")
 
+
+
+def get_dynamic_service_status_helper_no_retries(request, module_name, version) -> DynamicServiceStatus:
+    """
+    This is for backwards compat for SW1 in R1
+
+    """
+
+    module_info = lookup_module_info(request=request, module_name=module_name, git_commit=version)
+    return DynamicServiceStatus(
+        url=module_info.url,
+        version=module_info.version,
+        module_name=module_info.module_name,
+        release_tags=module_info.release_tags,
+        git_commit_hash=module_info.git_commit_hash,
+        deployment_name=module_info.module_name,
+        replicas=0,
+        updated_replicas=0,
+        ready_replicas=0,
+        available_replicas=0,
+        unavailable_replicas=0,
+    )
 
 def get_dynamic_service_status_helper(request, module_name, version) -> DynamicServiceStatus:
     """
