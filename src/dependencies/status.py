@@ -44,7 +44,7 @@ def lookup_module_info(request: Request, module_name: str, git_commit: str) -> C
     )
 
 
-def get_service_status_without_retries(request, module_name, version) -> DynamicServiceStatus:
+def get_service_status_one_try(request, module_name, version) -> DynamicServiceStatus:
     """
     Convenience method to get the service status without retries.
     This will only fall back to the helper function if the specific "maximum retries"

@@ -7,7 +7,7 @@ import clients.baseclient
 from dependencies.k8_wrapper import DuplicateLabelsException
 from dependencies.status import (
     lookup_module_info,
-    get_service_status_without_retries,
+    get_service_status_one_try,
     get_service_status_with_retries,
     get_dynamic_service_status_helper,
     get_status,
@@ -56,7 +56,7 @@ def test_get_service_status_without_retries_fallback_path(mock_get_with_retries,
     mock_get_with_retries.side_effect = Exception("Failed to get service status after maximum retries")
 
     # Call the function you are testing
-    get_service_status_without_retries(mock_request, sample_module_name, sample_git_commit)
+    get_service_status_one_try(mock_request, sample_module_name, sample_git_commit)
 
     # Assert that the initial attempt was made
     mock_get_with_retries.assert_called_once_with(mock_request, sample_module_name, sample_git_commit, retries=1)
