@@ -7,7 +7,7 @@ import clients.baseclient
 from dependencies.k8_wrapper import DuplicateLabelsException
 from dependencies.status import (
     lookup_module_info,
-    get_service_status_without_retries,
+    get_service_status_one_try,
     get_service_status_with_retries,
     get_dynamic_service_status_helper,
     get_status,
@@ -45,10 +45,24 @@ def test_lookup_module_info(mock_request):
     assert lookup_module_info(mock_request, sample_module_name, sample_git_commit) == evr
 
 
+@patch("dependencies.status.get_dynamic_service_status_helper_no_retries")
 @patch("dependencies.status.get_service_status_with_retries")
-def test_get_service_status_without_retries(mock_get_service_status_with_retries, mock_request):
-    get_service_status_without_retries(mock_request, sample_module_name, sample_git_commit)
-    mock_get_service_status_with_retries.assert_called_once_with(mock_request, sample_module_name, sample_git_commit, retries=0)
+def test_get_service_status_without_retries_fallback_path(mock_get_with_retries, mock_fallback_helper, mock_request):
+    """
+    Tests that the fallback helper is called when a 'maximum retries'
+    exception occurs.
+    """
+    # Force the mocked function to throw the specific exception
+    mock_get_with_retries.side_effect = Exception("Failed to get service status after maximum retries")
+
+    # Call the function you are testing
+    get_service_status_one_try(mock_request, sample_module_name, sample_git_commit)
+
+    # Assert that the initial attempt was made
+    mock_get_with_retries.assert_called_once_with(mock_request, sample_module_name, sample_git_commit, retries=1)
+
+    # Assert that the fallback function was called as a result
+    mock_fallback_helper.assert_called_once_with(mock_request, sample_module_name, sample_git_commit)
 
 
 @patch("time.sleep")

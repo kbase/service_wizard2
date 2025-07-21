@@ -42,7 +42,7 @@ def test_list_service_status(mock_handle_rpc):
 @patch("rpc.handlers.unauthenticated_handlers.handle_rpc_request")
 def test_get_service_status_without_restart(mock_handle_rpc):
     unauthenticated_handlers.get_service_status_without_restart(mock_request, mock_params, mock_jrpc_id)
-    mock_handle_rpc.assert_called_once_with(mock_request, mock_params, mock_jrpc_id, status.get_service_status_without_retries)
+    mock_handle_rpc.assert_called_once_with(mock_request, mock_params, mock_jrpc_id, status.get_service_status_one_try)
 
 
 @patch("rpc.handlers.unauthenticated_handlers.handle_rpc_request")
