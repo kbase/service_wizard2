@@ -104,7 +104,7 @@ jobs:
           if [ "$FOUND_CRITICAL" = true ]; then
             echo "cve_found=true" >> "$GITHUB_OUTPUT"
             echo "status_description=CRITICAL Log4j/Spring CVEs found!" >> "$GITHUB_OUTPUT"
-            echo "Workflow step failed due to specific critical CVEs."
+            echo "Workflow step failed due to specific critical CVEs. Check out the security tab for more details."
             exit 1 # Fail this step, which will cause the job to show as failed
           else
             echo "cve_found=false" >> "$GITHUB_OUTPUT"
