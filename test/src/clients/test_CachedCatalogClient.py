@@ -102,6 +102,7 @@ def test_get_hash_to_name_mappings_cached(client, mocked_catalog):
 def test_clean_version():
     assert _clean_version(None) == "release"
     assert _clean_version("dev") == "dev"
+    assert _clean_version("null") == "release"
 
 
 def test_get_key():

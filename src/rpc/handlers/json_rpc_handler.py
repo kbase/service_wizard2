@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Any
 
 from fastapi import Request, Response, HTTPException
@@ -53,5 +54,6 @@ def json_rpc_helper(request: Request, body: bytes) -> Response | HTTPException |
     converted_response = jsonable_encoder(valid_response)
 
     if "error" in converted_response:
+        logging.error(converted_response)
         return JSONResponse(content=converted_response, status_code=500)
     return JSONResponse(content=converted_response, status_code=200)

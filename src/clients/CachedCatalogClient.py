@@ -18,11 +18,10 @@ def get_module_name_hash(module_name: str) -> str:
 
 
 def _clean_version(version: str | int | None) -> str:
-    if version is None:
-        version = "release"
-
-    return str(version)
-
+    version_str = str(version)
+    if version_str.lower() == "none" or version_str.lower() == "null":
+        return "release"
+    return version_str
 
 def _get_key(module_name: str, version: str = "release") -> str:
     return str(module_name) + "-" + str(_clean_version(version))
@@ -40,6 +39,9 @@ class CachedCatalogClient:
         settings = get_settings() if not settings else settings
         self.cc = Catalog(url=settings.catalog_url, token=settings.catalog_admin_token) if not catalog else catalog
 
+
+
+
     def get_combined_module_info(self, module_name: str, version: str = "release") -> dict:
         """
         Retrieve the module info from the KBase Catalog
@@ -49,13 +51,22 @@ class CachedCatalogClient:
         - get_module_info - a subset of just ownership information
 
         :param module_name:     The name of the module.
-        :param version:       The version of the module.
+        :param version:       The version of the module. If version is None|Null, it will be set to "release".
+        If no release is found, it will be set to "dev".
         :return: The module info from the KBase Catalog
         """
         key = _get_key(module_name, version)
         combined_module_info = self.module_info_cache.get(key=key, default=None)
         if not combined_module_info:
-            combined_module_info = self.cc.get_module_version({"module_name": module_name, "version": _clean_version(version)})
+            clean_version = _clean_version(version)
+            try:
+                combined_module_info = self.cc.get_module_version({"module_name": module_name, "version": clean_version })
+            except Exception as e:
+                if "No module version found that matches your criteria!" in str(e):
+                    combined_module_info = self.cc.get_module_version({"module_name": module_name, "version": "dev"})
+                else:
+                    raise e
+
             combined_module_info["owners"] = self.cc.get_module_info({"module_name": module_name})["owners"]
             self.module_info_cache.set(key=key, value=combined_module_info)
         if combined_module_info.get("dynamic_service") != 1:
